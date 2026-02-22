@@ -127,7 +127,7 @@ export function createAvailabilityRepository(container: Container): IAvailabilit
             tenantId: operators.tenantId,
           })
           .from(operators)
-          .where(eq(operators.id, operatorId))
+          .where(and(eq(operators.id, operatorId), eq(operators.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");

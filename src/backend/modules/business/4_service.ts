@@ -1,5 +1,6 @@
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
+import type { Role } from "../../core/session/session.guard.js";
 import type { IBusinessRepository } from "./5_repository.js";
 import type {
   BusinessProfile,
@@ -13,30 +14,30 @@ import type { BusinessRow } from "./types/models/models.js";
 export interface IBusinessService {
   create(
     input: CreateBusinessRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<BusinessProfile>>;
   getById(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerBusinessId: string | null,
   ): Promise<Result<BusinessProfile>>;
   getBySlug(slug: string): Promise<Result<BusinessProfile>>;
   listAll(
     query: ListBusinessesQuery,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<PaginatedBusinessesResponse>>;
   update(
     id: string,
     input: UpdateBusinessRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<BusinessProfile>>;
   delete(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<{ message: string }>>;
 }
@@ -71,6 +72,12 @@ export function createBusinessService(repository: IBusinessRepository): IBusines
       if (callerRole === "OWNER") {
         if (!input.tenantId) {
           return R.fail({ code: "VALIDATION_ERROR", message: "tenantId é obrigatório para OWNER" });
+        }
+        // Valida que o tenant existe e está ativo
+        const tenantResult = await repository.findTenantById(input.tenantId);
+        if (tenantResult.isErr()) return R.fail(tenantResult.error);
+        if (!tenantResult.value || !tenantResult.value.active) {
+          return R.fail({ code: "NOT_FOUND", message: "Tenant não encontrado ou inativo" });
         }
         tenantId = input.tenantId;
       } else {
@@ -176,6 +183,8 @@ export function createBusinessService(repository: IBusinessRepository): IBusines
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value)
         return R.fail({ code: "NOT_FOUND", message: "Business não encontrado" });
+      if (!findResult.value.active)
+        return R.fail({ code: "ALREADY_INACTIVE", message: "Business está inativo" });
 
       // TENANT só edita businesses do próprio tenant
       if (callerRole === "TENANT" && callerTenantId !== findResult.value.tenantId) {

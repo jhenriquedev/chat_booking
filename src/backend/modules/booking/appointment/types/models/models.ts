@@ -5,6 +5,7 @@ export type AppointmentRow = {
   operatorId: string;
   businessId: string;
   serviceId: string;
+  slotId: string | null;
   scheduledAt: Date;
   durationMinutes: number;
   priceCents: number;

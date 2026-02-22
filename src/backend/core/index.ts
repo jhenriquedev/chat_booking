@@ -1,4 +1,5 @@
 export { config, type Config } from "./config/config.js";
+export { hashPhone } from "./crypto/crypto.js";
 export {
   type Container,
   type ModuleFactory,

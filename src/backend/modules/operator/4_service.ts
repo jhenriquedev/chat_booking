@@ -1,5 +1,6 @@
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
+import type { Role } from "../../core/session/session.guard.js";
 import type { IOperatorRepository } from "./5_repository.js";
 import type {
   CreateOperatorRequest,
@@ -15,41 +16,41 @@ import type { OperatorRow, OperatorServiceRow } from "./types/models/models.js";
 export interface IOperatorService {
   create(
     input: CreateOperatorRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<OperatorProfile>>;
   getById(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<OperatorProfile>>;
   listAll(
     query: ListOperatorsQuery,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<PaginatedOperatorsResponse>>;
   update(
     id: string,
     input: UpdateOperatorRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<OperatorProfile>>;
   delete(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<{ message: string }>>;
   linkService(
     operatorId: string,
     input: LinkServiceRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<OperatorServiceProfile>>;
   unlinkService(
     operatorId: string,
     serviceId: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<{ message: string }>>;
 }
@@ -84,7 +85,7 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
   /** Verifica se o operator pertence ao tenant do caller */
   function checkTenantOwnership(
     operator: OperatorRow,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Result<void> {
     if (callerRole === "TENANT" && callerTenantId !== operator.tenantId) {
@@ -114,6 +115,14 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
       if (userResult.isErr()) return R.fail(userResult.error);
       if (!userResult.value) {
         return R.fail({ code: "NOT_FOUND", message: "Usuário não encontrado" });
+      }
+
+      // Apenas usuários com role USER podem ser promovidos a OPERATOR
+      if (userResult.value.role !== "USER") {
+        return R.fail({
+          code: "FORBIDDEN",
+          message: "Apenas usuários com role USER podem ser promovidos a OPERATOR",
+        });
       }
 
       // Verifica que o user não é já um operator
@@ -183,7 +192,7 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         page: query.page,
         limit: query.limit,
         businessId: query.businessId,
-        active: query.active,
+        active: query.active ?? true,
       });
       if (result.isErr()) return R.fail(result.error);
 
@@ -205,6 +214,8 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value)
         return R.fail({ code: "NOT_FOUND", message: "Operador não encontrado" });
+      if (!findResult.value.active)
+        return R.fail({ code: "ALREADY_INACTIVE", message: "Operador está inativo" });
 
       const ownershipCheck = checkTenantOwnership(findResult.value, callerRole, callerTenantId);
       if (ownershipCheck.isErr()) return R.fail(ownershipCheck.error);
@@ -228,10 +239,17 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         return R.fail({ code: "ALREADY_INACTIVE", message: "Operador já está inativo" });
       }
 
-      // Determina o role anterior: se o user possui um tenant, reverte para TENANT; senão, USER
-      const tenantResult = await repository.findTenantByUserId(findResult.value.userId);
-      if (tenantResult.isErr()) return R.fail(tenantResult.error);
-      const previousRole = tenantResult.value ? "TENANT" : "USER";
+      // Determina o role anterior: busca o user atual, se é OWNER mantém; se tem tenant, TENANT; senão USER
+      const currentUser = await repository.findUserById(findResult.value.userId);
+      if (currentUser.isErr()) return R.fail(currentUser.error);
+      let previousRole = "USER";
+      if (currentUser.value?.role === "OWNER") {
+        previousRole = "OWNER";
+      } else {
+        const tenantResult = await repository.findTenantByUserId(findResult.value.userId);
+        if (tenantResult.isErr()) return R.fail(tenantResult.error);
+        if (tenantResult.value) previousRole = "TENANT";
+      }
 
       // Desativa operador e reverte role em transação atômica
       const deleteResult = await repository.softDeleteWithRoleRevert(

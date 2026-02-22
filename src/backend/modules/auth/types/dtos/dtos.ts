@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { phoneSchema } from "../../../../shared/dtos.js";
 
 // ========== LOGIN ==========
 
 /** POST /api/auth/login — Request Body */
 export const loginRequestSchema = z.object({
   /** Telefone internacional — ex: +5511999999999 */
-  phone: z.string().min(1, "Telefone é obrigatório").max(20),
+  phone: phoneSchema,
   /** Nome do usuário (opcional, usado no auto-cadastro) */
   name: z.string().min(1).max(255).optional(),
 });

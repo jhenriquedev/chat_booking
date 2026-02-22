@@ -9,6 +9,13 @@ const appointmentStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "
 /** Regex para validar formato YYYY-MM-DD */
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Valida que a string é uma data real (não aceita "2025-13-45") */
+function isValidDate(value: string): boolean {
+  if (!dateRegex.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
+}
+
 // ========== APPOINTMENT PROFILE (response) ==========
 
 /** Perfil do agendamento retornado nas respostas */
@@ -18,6 +25,7 @@ export const appointmentProfileSchema = z.object({
   operatorId: z.string().uuid(),
   businessId: z.string().uuid(),
   serviceId: z.string().uuid(),
+  slotId: z.string().uuid().nullable(),
   scheduledAt: z.string().datetime(),
   durationMinutes: z.number().int(),
   priceCents: z.number().int(),
@@ -47,8 +55,16 @@ export const listAppointmentsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   status: z.enum(appointmentStatuses).optional(),
-  dateFrom: z.string().regex(dateRegex, "Formato deve ser YYYY-MM-DD").optional(),
-  dateTo: z.string().regex(dateRegex, "Formato deve ser YYYY-MM-DD").optional(),
+  dateFrom: z
+    .string()
+    .regex(dateRegex, "Formato deve ser YYYY-MM-DD")
+    .refine(isValidDate, "Data inválida")
+    .optional(),
+  dateTo: z
+    .string()
+    .regex(dateRegex, "Formato deve ser YYYY-MM-DD")
+    .refine(isValidDate, "Data inválida")
+    .optional(),
   operatorId: z.string().uuid().optional(),
   businessId: z.string().uuid().optional(),
 });

@@ -2,6 +2,7 @@ import { index, integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { appointmentStatusEnum, chatBookingSchema } from "../schema.js";
 import { businesses } from "./businesses.js";
 import { operators } from "./operators.js";
+import { scheduleSlots } from "./schedule-slots.js";
 import { services } from "./services.js";
 import { users } from "./users.js";
 
@@ -27,6 +28,8 @@ export const appointments = chatBookingSchema.table(
     serviceId: uuid("service_id")
       .notNull()
       .references(() => services.id),
+    /** Slot da agenda que originou este agendamento (nullable para dados legados) */
+    slotId: uuid("slot_id").references(() => scheduleSlots.id),
     /** Data/hora agendada para o atendimento */
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
     /** Snapshot da duração no momento do agendamento (em minutos) */

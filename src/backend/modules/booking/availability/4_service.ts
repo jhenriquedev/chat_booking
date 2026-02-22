@@ -1,5 +1,6 @@
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
+import type { Role } from "../../../core/session/session.guard.js";
 import type { IAvailabilityRepository } from "./5_repository.js";
 import type {
   AvailabilityRuleProfile,
@@ -12,26 +13,26 @@ import type { AvailabilityRuleRow } from "./types/models/models.js";
 export interface IAvailabilityService {
   create(
     input: CreateAvailabilityRuleRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<AvailabilityRuleProfile>>;
   listByOperator(
     query: ListAvailabilityRulesQuery,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<AvailabilityRuleProfile[]>>;
   update(
     id: string,
     input: UpdateAvailabilityRuleRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<AvailabilityRuleProfile>>;
   delete(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<{ message: string }>>;
@@ -61,7 +62,7 @@ export function createAvailabilityService(
    */
   async function checkOperatorAccess(
     operatorId: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<{ id: string; userId: string; tenantId: string }>> {
@@ -146,6 +147,10 @@ export function createAvailabilityService(
       }
 
       const rule = findResult.value;
+
+      if (!rule.active) {
+        return R.fail({ code: "ALREADY_INACTIVE", message: "Regra está inativa" });
+      }
 
       // Verifica acesso ao operador da regra
       const accessCheck = await checkOperatorAccess(

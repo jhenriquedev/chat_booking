@@ -21,18 +21,13 @@ export interface IOperatorRepository {
     businessId: string;
     active?: boolean;
   }): Promise<Result<{ data: OperatorRow[]; total: number }>>;
-  create(
-    data: Omit<OperatorRow, "id" | "active" | "createdAt" | "updatedAt">,
-  ): Promise<Result<OperatorRow>>;
   update(
     id: string,
     data: Partial<
       Omit<OperatorRow, "id" | "userId" | "businessId" | "tenantId" | "createdAt" | "updatedAt">
     >,
   ): Promise<Result<OperatorRow>>;
-  softDelete(id: string): Promise<Result<void>>;
   findUserById(userId: string): Promise<Result<{ id: string; role: string } | null>>;
-  updateUserRole(userId: string, role: string): Promise<Result<void>>;
   findBusinessById(businessId: string): Promise<Result<{ id: string; tenantId: string } | null>>;
   findServiceById(serviceId: string): Promise<Result<{ id: string; businessId: string } | null>>;
   findOperatorService(
@@ -101,23 +96,6 @@ export function createOperatorRepository(container: Container): IOperatorReposit
       }, "DB_QUERY_FAILED");
     },
 
-    async create(data) {
-      return R.fromAsync(async () => {
-        const rows = await db
-          .insert(operators)
-          .values({
-            userId: data.userId,
-            businessId: data.businessId,
-            tenantId: data.tenantId,
-            displayName: data.displayName,
-            canEditService: data.canEditService,
-          })
-          .returning();
-        if (!rows[0]) throw new Error("Insert não retornou registro");
-        return rows[0];
-      }, "DB_QUERY_FAILED");
-    },
-
     async update(id, data) {
       return R.fromAsync(async () => {
         const rows = await db
@@ -130,32 +108,14 @@ export function createOperatorRepository(container: Container): IOperatorReposit
       }, "DB_QUERY_FAILED");
     },
 
-    async softDelete(id) {
-      return R.fromAsync(async () => {
-        await db
-          .update(operators)
-          .set({ active: false, updatedAt: sql`now()` })
-          .where(eq(operators.id, id));
-      }, "DB_QUERY_FAILED");
-    },
-
     async findUserById(userId) {
       return R.fromAsync(async () => {
         const rows = await db
           .select({ id: users.id, role: users.role })
           .from(users)
-          .where(eq(users.id, userId))
+          .where(and(eq(users.id, userId), eq(users.active, true)))
           .limit(1);
         return rows[0] ?? null;
-      }, "DB_QUERY_FAILED");
-    },
-
-    async updateUserRole(userId, role) {
-      return R.fromAsync(async () => {
-        await db
-          .update(users)
-          .set({ role: role as "USER" | "OPERATOR" | "TENANT" | "OWNER", updatedAt: sql`now()` })
-          .where(eq(users.id, userId));
       }, "DB_QUERY_FAILED");
     },
 
@@ -164,7 +124,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
         const rows = await db
           .select({ id: businesses.id, tenantId: businesses.tenantId })
           .from(businesses)
-          .where(eq(businesses.id, businessId))
+          .where(and(eq(businesses.id, businessId), eq(businesses.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
@@ -175,7 +135,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
         const rows = await db
           .select({ id: services.id, businessId: services.businessId })
           .from(services)
-          .where(eq(services.id, serviceId))
+          .where(and(eq(services.id, serviceId), eq(services.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");

@@ -46,10 +46,10 @@ export const createBusinessRequestSchema = z.object({
   email: z.string().email("E-mail inválido").max(255).optional(),
   cnpj: z.string().max(18).optional(),
   website: z.string().max(500).optional(),
-  address: z.string().optional(),
-  description: z.string().optional(),
-  logoUrl: z.string().optional(),
-  coverUrl: z.string().optional(),
+  address: z.string().max(1000).optional(),
+  description: z.string().max(2000).optional(),
+  logoUrl: z.string().max(2000).optional(),
+  coverUrl: z.string().max(2000).optional(),
   businessHours: businessHoursSchema.optional(),
   socialLinks: socialLinksSchema.optional(),
   /** Apenas OWNER pode informar o tenantId; TENANT usa o próprio */
@@ -75,13 +75,12 @@ export const updateBusinessRequestSchema = z.object({
   email: z.string().email("E-mail inválido").max(255).nullable().optional(),
   cnpj: z.string().max(18).nullable().optional(),
   website: z.string().max(500).nullable().optional(),
-  address: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  logoUrl: z.string().nullable().optional(),
-  coverUrl: z.string().nullable().optional(),
+  address: z.string().max(1000).nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  logoUrl: z.string().max(2000).nullable().optional(),
+  coverUrl: z.string().max(2000).nullable().optional(),
   businessHours: businessHoursSchema.optional(),
   socialLinks: socialLinksSchema.optional(),
-  active: z.boolean().optional(),
 });
 export type UpdateBusinessRequest = z.infer<typeof updateBusinessRequestSchema>;
 

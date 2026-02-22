@@ -1,11 +1,13 @@
 import { createHash, randomBytes } from "node:crypto";
 import { sign } from "hono/jwt";
 import type { Container } from "../../core/container/container.js";
+import { hashPhone } from "../../core/crypto/crypto.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
 import type { Role, SessionPayload } from "../../core/session/session.guard.js";
 import type { IAuthRepository } from "./5_repository.js";
 import type { LoginRequest, LoginResponse, RefreshResponse } from "./types/dtos/dtos.js";
+import { AuthErrorCode } from "./types/enums/enums.js";
 
 export interface IAuthService {
   login(input: LoginRequest): Promise<Result<LoginResponse>>;
@@ -41,16 +43,24 @@ export function createAuthService(container: Container, repository: IAuthReposit
     if (role === "OPERATOR") {
       const opResult = await repository.findOperatorByUserId(userId);
       if (opResult.isErr()) return R.fail(opResult.error);
-      if (opResult.value) {
-        tenantId = opResult.value.tenantId;
-        businessId = opResult.value.businessId;
+      if (!opResult.value) {
+        return R.fail({
+          code: AuthErrorCode.UNAUTHORIZED,
+          message: "Operador não possui registro ativo",
+        });
       }
+      tenantId = opResult.value.tenantId;
+      businessId = opResult.value.businessId;
     } else if (role === "TENANT") {
       const tenantResult = await repository.findTenantByUserId(userId);
       if (tenantResult.isErr()) return R.fail(tenantResult.error);
-      if (tenantResult.value) {
-        tenantId = tenantResult.value.tenantId;
+      if (!tenantResult.value) {
+        return R.fail({
+          code: AuthErrorCode.UNAUTHORIZED,
+          message: "Tenant não possui registro ativo",
+        });
       }
+      tenantId = tenantResult.value.tenantId;
     }
 
     return R.ok({ sub: userId, role, tenantId, businessId });
@@ -70,7 +80,7 @@ export function createAuthService(container: Container, repository: IAuthReposit
     /** Login: find-or-create user, gera par de tokens */
     async login(input: LoginRequest): Promise<Result<LoginResponse>> {
       // 1. Gera hash do telefone e busca user
-      const phoneHash = hashToken(input.phone);
+      const phoneHash = hashPhone(input.phone);
       const userResult = await repository.findUserByPhoneHash(phoneHash);
       if (userResult.isErr()) return R.fail(userResult.error);
 
@@ -89,13 +99,13 @@ export function createAuthService(container: Container, repository: IAuthReposit
 
       // 3. Verifica se está ativo
       if (!user.active) {
-        return R.fail({ code: "UNAUTHORIZED", message: "Conta de usuário inativa" });
+        return R.fail({ code: AuthErrorCode.UNAUTHORIZED, message: "Conta de usuário inativa" });
       }
 
       // 4. Valida role do DB
       const role = parseRole(user.role);
       if (!role) {
-        return R.fail({ code: "UNAUTHORIZED", message: "Role de usuário inválido" });
+        return R.fail({ code: AuthErrorCode.UNAUTHORIZED, message: "Role de usuário inválido" });
       }
 
       // 5. Monta payload do JWT (com lookup de tenantId/businessId)
@@ -141,7 +151,10 @@ export function createAuthService(container: Container, repository: IAuthReposit
       if (findResult.isErr()) return R.fail(findResult.error);
 
       if (!findResult.value) {
-        return R.fail({ code: "INVALID_TOKEN", message: "Refresh token inválido ou expirado" });
+        return R.fail({
+          code: AuthErrorCode.INVALID_TOKEN,
+          message: "Refresh token inválido ou expirado",
+        });
       }
 
       const existingToken = findResult.value;
@@ -151,7 +164,10 @@ export function createAuthService(container: Container, repository: IAuthReposit
       if (userResult.isErr()) return R.fail(userResult.error);
 
       if (!userResult.value || !userResult.value.active) {
-        return R.fail({ code: "UNAUTHORIZED", message: "Usuário não encontrado ou inativo" });
+        return R.fail({
+          code: AuthErrorCode.UNAUTHORIZED,
+          message: "Usuário não encontrado ou inativo",
+        });
       }
 
       const user = userResult.value;
@@ -163,7 +179,7 @@ export function createAuthService(container: Container, repository: IAuthReposit
       // 5. Valida role e monta novo payload
       const role = parseRole(user.role);
       if (!role) {
-        return R.fail({ code: "UNAUTHORIZED", message: "Role de usuário inválido" });
+        return R.fail({ code: AuthErrorCode.UNAUTHORIZED, message: "Role de usuário inválido" });
       }
       const payloadResult = await buildSessionPayload(user.id, role);
       if (payloadResult.isErr()) return R.fail(payloadResult.error);

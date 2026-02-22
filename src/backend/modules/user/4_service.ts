@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
+import { hashPhone } from "../../core/crypto/crypto.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
+import type { Role } from "../../core/session/session.guard.js";
 import type { IUserRepository } from "./5_repository.js";
 import type {
   CreateOwnerRequest,
@@ -16,16 +17,24 @@ import type { UserRow } from "./types/models/models.js";
 export interface IUserService {
   getMyProfile(userId: string): Promise<Result<UserProfile>>;
   updateMyProfile(userId: string, input: UpdateMyProfileRequest): Promise<Result<UserProfile>>;
-  listUsers(query: ListUsersQuery): Promise<Result<PaginatedUsersResponse>>;
-  getUserById(id: string): Promise<Result<UserProfile>>;
-  updateUser(id: string, input: UpdateUserRequest): Promise<Result<UserProfile>>;
-  deleteUser(id: string): Promise<Result<{ message: string }>>;
+  listUsers(
+    query: ListUsersQuery,
+    callerRole: Role,
+    callerTenantId: string | null,
+  ): Promise<Result<PaginatedUsersResponse>>;
+  getUserById(
+    id: string,
+    callerRole: Role,
+    callerTenantId: string | null,
+  ): Promise<Result<UserProfile>>;
+  updateUser(
+    id: string,
+    input: UpdateUserRequest,
+    callerUserId: string,
+  ): Promise<Result<UserProfile>>;
+  deleteUser(id: string, callerUserId: string): Promise<Result<{ message: string }>>;
   createOwner(input: CreateOwnerRequest): Promise<Result<UserProfile>>;
   updateOwner(id: string, input: UpdateOwnerRequest): Promise<Result<UserProfile>>;
-}
-
-function hashPhone(phone: string): string {
-  return createHash("sha256").update(phone).digest("hex");
 }
 
 function toProfile(row: UserRow): UserProfile {
@@ -63,13 +72,14 @@ export function createUserService(repository: IUserRepository): IUserService {
       return R.ok(toProfile(updateResult.value));
     },
 
-    async listUsers(query) {
+    async listUsers(query, callerRole, callerTenantId) {
       const result = await repository.findAll({
         page: query.page,
         limit: query.limit,
         role: query.role,
         active: query.active,
         search: query.search,
+        tenantId: callerRole === "TENANT" ? (callerTenantId ?? undefined) : undefined,
       });
       if (result.isErr()) return R.fail(result.error);
 
@@ -86,7 +96,13 @@ export function createUserService(repository: IUserRepository): IUserService {
       });
     },
 
-    async getUserById(id) {
+    async getUserById(id, callerRole, callerTenantId) {
+      if (callerRole === "TENANT" && callerTenantId) {
+        const belongs = await repository.userBelongsToTenant(id, callerTenantId);
+        if (belongs.isErr()) return R.fail(belongs.error);
+        if (!belongs.value) return R.fail({ code: "NOT_FOUND", message: "Usuário não encontrado" });
+      }
+
       const result = await repository.findById(id);
       if (result.isErr()) return R.fail(result.error);
       if (!result.value) return R.fail({ code: "NOT_FOUND", message: "Usuário não encontrado" });
@@ -94,7 +110,11 @@ export function createUserService(repository: IUserRepository): IUserService {
       return R.ok(toProfile(result.value));
     },
 
-    async updateUser(id, input) {
+    async updateUser(id, input, callerUserId) {
+      if (id === callerUserId && input.role) {
+        return R.fail({ code: "FORBIDDEN", message: "Não é possível alterar o próprio role" });
+      }
+
       const findResult = await repository.findById(id);
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value)
@@ -106,7 +126,11 @@ export function createUserService(repository: IUserRepository): IUserService {
       return R.ok(toProfile(updateResult.value));
     },
 
-    async deleteUser(id) {
+    async deleteUser(id, callerUserId) {
+      if (id === callerUserId) {
+        return R.fail({ code: "FORBIDDEN", message: "Não é possível desativar a si mesmo" });
+      }
+
       const findResult = await repository.findById(id);
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value)

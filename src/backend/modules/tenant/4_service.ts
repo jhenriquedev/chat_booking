@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
+import { hashPhone } from "../../core/crypto/crypto.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
+import type { Role } from "../../core/session/session.guard.js";
 import type { ITenantRepository } from "./5_repository.js";
 import type {
   CreateTenantRequest,
@@ -15,16 +16,12 @@ export interface ITenantService {
   create(input: CreateTenantRequest): Promise<Result<TenantProfile>>;
   getById(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<TenantProfile>>;
   listAll(query: ListTenantsQuery): Promise<Result<PaginatedTenantsResponse>>;
   update(id: string, input: UpdateTenantRequest): Promise<Result<TenantProfile>>;
   delete(id: string): Promise<Result<{ message: string }>>;
-}
-
-function hashPhone(phone: string): string {
-  return createHash("sha256").update(phone).digest("hex");
 }
 
 function toProfile(row: TenantWithUserRow): TenantProfile {
@@ -51,8 +48,15 @@ export function createTenantService(repository: ITenantRepository): ITenantServi
       let existingUserId: string | undefined;
 
       if (userResult.value) {
-        // 2. User existe — verifica se já é tenant
+        // 2. User existe — verifica role e se já é tenant
         existingUserId = userResult.value.id;
+
+        if (userResult.value.role === "OWNER") {
+          return R.fail({
+            code: "FORBIDDEN",
+            message: "Não é possível rebaixar um OWNER para TENANT",
+          });
+        }
 
         const existingTenant = await repository.findByUserId(existingUserId);
         if (existingTenant.isErr()) return R.fail(existingTenant.error);

@@ -5,6 +5,13 @@ export { errorResponseSchema, messageResponseSchema } from "../../../../../share
 /** Regex para validar formato YYYY-MM-DD */
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Valida que a string é uma data real (não aceita "2025-13-45") */
+function isValidDate(value: string): boolean {
+  if (!dateRegex.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
+}
+
 // ========== SCHEDULE SLOT PROFILE (response) ==========
 
 /** Perfil do slot retornado nas respostas */
@@ -26,8 +33,14 @@ export type ScheduleSlotProfile = z.infer<typeof scheduleSlotProfileSchema>;
 export const generateSlotsRequestSchema = z
   .object({
     operatorId: z.string().uuid("operatorId deve ser um UUID válido"),
-    dateFrom: z.string().regex(dateRegex, "Formato deve ser YYYY-MM-DD"),
-    dateTo: z.string().regex(dateRegex, "Formato deve ser YYYY-MM-DD"),
+    dateFrom: z
+      .string()
+      .regex(dateRegex, "Formato deve ser YYYY-MM-DD")
+      .refine(isValidDate, "Data inválida"),
+    dateTo: z
+      .string()
+      .regex(dateRegex, "Formato deve ser YYYY-MM-DD")
+      .refine(isValidDate, "Data inválida"),
     durationMinutes: z
       .number()
       .int("Duração deve ser um número inteiro")
@@ -52,7 +65,10 @@ export type GenerateSlotsResponse = z.infer<typeof generateSlotsResponseSchema>;
 /** GET /api/schedule — Query Params */
 export const listSlotsQuerySchema = z.object({
   operatorId: z.string().uuid("operatorId deve ser um UUID válido"),
-  date: z.string().regex(dateRegex, "Formato deve ser YYYY-MM-DD"),
+  date: z
+    .string()
+    .regex(dateRegex, "Formato deve ser YYYY-MM-DD")
+    .refine(isValidDate, "Data inválida"),
   status: z.enum(["AVAILABLE", "BOOKED", "BLOCKED"]).optional(),
 });
 export type ListSlotsQuery = z.infer<typeof listSlotsQuerySchema>;

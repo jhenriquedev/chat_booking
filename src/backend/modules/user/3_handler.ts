@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import type { Config } from "../../core/config/config.js";
@@ -20,13 +20,12 @@ export interface IUserHandler {
   register(app: OpenAPIHono): void;
 }
 
-/** Valida a admin key do header X-Admin-Key (timing-safe) */
+/** Valida a admin key do header X-Admin-Key (timing-safe via hash) */
 function validateAdminKey(c: Context, config: Config): boolean {
   const key = c.req.header("X-Admin-Key");
   if (!key) return false;
-  const a = Buffer.from(key);
-  const b = Buffer.from(config.ADMIN_API_KEY);
-  if (a.length !== b.length) return false;
+  const a = createHash("sha256").update(key).digest();
+  const b = createHash("sha256").update(config.ADMIN_API_KEY).digest();
   return timingSafeEqual(a, b);
 }
 
@@ -63,7 +62,7 @@ export function createUserHandler(service: IUserService, config: Config): IUserH
         }
 
         const query = c.req.valid("query");
-        const result = await service.listUsers(query);
+        const result = await service.listUsers(query, session.role, session.tenantId);
 
         if (result.isErr()) return respondError(c, result.error);
         return c.json(result.value, 200);
@@ -78,7 +77,7 @@ export function createUserHandler(service: IUserService, config: Config): IUserH
         }
 
         const { id } = c.req.valid("param");
-        const result = await service.getUserById(id);
+        const result = await service.getUserById(id, session.role, session.tenantId);
 
         if (result.isErr()) return respondError(c, result.error);
         return c.json(result.value, 200);
@@ -94,7 +93,7 @@ export function createUserHandler(service: IUserService, config: Config): IUserH
 
         const { id } = c.req.valid("param");
         const body = c.req.valid("json");
-        const result = await service.updateUser(id, body);
+        const result = await service.updateUser(id, body, session.sub);
 
         if (result.isErr()) return respondError(c, result.error);
         return c.json(result.value, 200);
@@ -109,7 +108,7 @@ export function createUserHandler(service: IUserService, config: Config): IUserH
         }
 
         const { id } = c.req.valid("param");
-        const result = await service.deleteUser(id);
+        const result = await service.deleteUser(id, session.sub);
 
         if (result.isErr()) return respondError(c, result.error);
         return c.json(result.value, 200);

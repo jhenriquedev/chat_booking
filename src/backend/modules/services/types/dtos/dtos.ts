@@ -30,11 +30,13 @@ export const createServiceRequestSchema = z.object({
   durationMinutes: z
     .number()
     .int("Duração deve ser um número inteiro")
-    .positive("Duração deve ser maior que zero"),
+    .positive("Duração deve ser maior que zero")
+    .max(1440, "Duração máxima é 1440 minutos (24h)"),
   priceCents: z
     .number()
     .int("Preço deve ser um número inteiro")
-    .nonnegative("Preço não pode ser negativo"),
+    .nonnegative("Preço não pode ser negativo")
+    .max(99999999, "Preço máximo excedido"),
 });
 export type CreateServiceRequest = z.infer<typeof createServiceRequestSchema>;
 
@@ -48,13 +50,14 @@ export const updateServiceRequestSchema = z.object({
     .number()
     .int("Duração deve ser um número inteiro")
     .positive("Duração deve ser maior que zero")
+    .max(1440, "Duração máxima é 1440 minutos (24h)")
     .optional(),
   priceCents: z
     .number()
     .int("Preço deve ser um número inteiro")
     .nonnegative("Preço não pode ser negativo")
+    .max(99999999, "Preço máximo excedido")
     .optional(),
-  active: z.boolean().optional(),
 });
 export type UpdateServiceRequest = z.infer<typeof updateServiceRequestSchema>;
 

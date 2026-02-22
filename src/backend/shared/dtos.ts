@@ -21,3 +21,10 @@ export const paginationSchema = z.object({
 export const messageResponseSchema = z.object({
   message: z.string(),
 });
+
+/** Schema de telefone reutilizavel (formato internacional) */
+export const phoneSchema = z
+  .string()
+  .min(1, "Telefone e obrigatorio")
+  .max(20)
+  .regex(/^\+?\d{10,15}$/, "Formato de telefone invalido");

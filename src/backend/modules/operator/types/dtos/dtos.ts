@@ -39,7 +39,6 @@ export type CreateOperatorRequest = z.infer<typeof createOperatorRequestSchema>;
 export const updateOperatorRequestSchema = z.object({
   displayName: z.string().min(1).max(255).optional(),
   canEditService: z.boolean().optional(),
-  active: z.boolean().optional(),
 });
 export type UpdateOperatorRequest = z.infer<typeof updateOperatorRequestSchema>;
 

@@ -1,4 +1,4 @@
-import { date, index, time, timestamp, uuid } from "drizzle-orm/pg-core";
+import { date, index, time, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { chatBookingSchema, slotStatusEnum } from "../schema.js";
 import { operators } from "./operators.js";
 
@@ -23,5 +23,8 @@ export const scheduleSlots = chatBookingSchema.table(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("idx_schedule_slots_operator_date").on(t.operatorId, t.date)],
+  (t) => [
+    index("idx_schedule_slots_operator_date").on(t.operatorId, t.date),
+    unique("uq_schedule_slots_operator_date_time").on(t.operatorId, t.date, t.startTime),
+  ],
 );

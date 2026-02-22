@@ -73,7 +73,11 @@ export function createScheduleRepository(container: Container): IScheduleReposit
           endTime: s.endTime,
         }));
 
-        const rows = await db.insert(scheduleSlots).values(values).returning();
+        const rows = await db
+          .insert(scheduleSlots)
+          .values(values)
+          .onConflictDoNothing()
+          .returning();
         return rows.length;
       }, "DB_QUERY_FAILED");
     },
@@ -105,7 +109,7 @@ export function createScheduleRepository(container: Container): IScheduleReposit
             tenantId: operators.tenantId,
           })
           .from(operators)
-          .where(eq(operators.id, operatorId))
+          .where(and(eq(operators.id, operatorId), eq(operators.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");

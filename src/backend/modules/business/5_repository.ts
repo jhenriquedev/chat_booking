@@ -2,7 +2,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { businesses } from "../../shared/schemas/index.js";
+import { businesses, tenants } from "../../shared/schemas/index.js";
 import type { BusinessRow } from "./types/models/models.js";
 
 export interface IBusinessRepository {
@@ -22,6 +22,7 @@ export interface IBusinessRepository {
     data: Partial<Omit<BusinessRow, "id" | "tenantId" | "createdAt" | "updatedAt">>,
   ): Promise<Result<BusinessRow>>;
   softDelete(id: string): Promise<Result<void>>;
+  findTenantById(id: string): Promise<Result<{ id: string; active: boolean } | null>>;
 }
 
 export function createBusinessRepository(container: Container): IBusinessRepository {
@@ -113,6 +114,17 @@ export function createBusinessRepository(container: Container): IBusinessReposit
           .update(businesses)
           .set({ active: false, updatedAt: sql`now()` })
           .where(eq(businesses.id, id));
+      }, "DB_QUERY_FAILED");
+    },
+
+    async findTenantById(id) {
+      return R.fromAsync(async () => {
+        const rows = await db
+          .select({ id: tenants.id, active: tenants.active })
+          .from(tenants)
+          .where(eq(tenants.id, id))
+          .limit(1);
+        return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
     },
   };

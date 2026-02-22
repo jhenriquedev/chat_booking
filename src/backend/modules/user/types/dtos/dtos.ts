@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "../../../../shared/dtos.js";
+import { paginationSchema, phoneSchema } from "../../../../shared/dtos.js";
 
 export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
 export { paginationSchema };
@@ -68,7 +68,7 @@ export type PaginatedUsersResponse = z.infer<typeof paginatedUsersResponseSchema
 /** POST /api/users/owner — Request Body */
 export const createOwnerRequestSchema = z.object({
   /** Telefone internacional — ex: +5511999999999 */
-  phone: z.string().min(1, "Telefone é obrigatório").max(20),
+  phone: phoneSchema,
   /** Nome do owner (opcional — usa o telefone se não informado) */
   name: z.string().min(1).max(255).optional(),
 });

@@ -15,6 +15,13 @@
       "when": 1771783988286,
       "tag": "0001_glamorous_manta",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771802508903,
+      "tag": "0002_luxuriant_cerebro",
+      "breakpoints": true
     }
   ]
 }

@@ -53,7 +53,6 @@ export const updateAvailabilityRuleRequestSchema = z
       .optional(),
     startTime: z.string().regex(timeRegex, "Formato deve ser HH:MM").optional(),
     endTime: z.string().regex(timeRegex, "Formato deve ser HH:MM").optional(),
-    active: z.boolean().optional(),
   })
   .refine(
     (data) => {

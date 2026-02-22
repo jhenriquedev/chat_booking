@@ -15,20 +15,14 @@ export interface INotificationRepository {
   findAll(params: {
     page: number;
     limit: number;
-    type?: string;
-    channel?: string;
-    status?: string;
+    type?: NotificationRow["type"];
+    channel?: NotificationRow["channel"];
+    status?: NotificationRow["status"];
     appointmentId?: string;
     userId?: string;
     operatorId?: string;
     tenantId?: string;
   }): Promise<Result<{ data: NotificationRow[]; total: number }>>;
-
-  updateStatus(
-    id: string,
-    status: NotificationRow["status"],
-    sentAt?: Date,
-  ): Promise<Result<NotificationRow>>;
 
   findAppointmentById(appointmentId: string): Promise<
     Result<{
@@ -80,13 +74,13 @@ export function createNotificationRepository(container: Container): INotificatio
           conditions.push(eq(notifications.userId, params.userId));
         }
         if (params.type) {
-          conditions.push(eq(notifications.type, params.type as NotificationRow["type"]));
+          conditions.push(eq(notifications.type, params.type));
         }
         if (params.channel) {
-          conditions.push(eq(notifications.channel, params.channel as NotificationRow["channel"]));
+          conditions.push(eq(notifications.channel, params.channel));
         }
         if (params.status) {
-          conditions.push(eq(notifications.status, params.status as NotificationRow["status"]));
+          conditions.push(eq(notifications.status, params.status));
         }
         if (params.appointmentId) {
           conditions.push(eq(notifications.appointmentId, params.appointmentId));
@@ -130,21 +124,6 @@ export function createNotificationRepository(container: Container): INotificatio
         ]);
 
         return { data, total: countResult[0]?.total ?? 0 };
-      }, "DB_QUERY_FAILED");
-    },
-
-    async updateStatus(id, status, sentAt) {
-      return R.fromAsync(async () => {
-        const rows = await db
-          .update(notifications)
-          .set({
-            status,
-            ...(sentAt ? { sentAt } : {}),
-          })
-          .where(eq(notifications.id, id))
-          .returning();
-        if (!rows[0]) throw new Error("Update não retornou registro");
-        return rows[0];
       }, "DB_QUERY_FAILED");
     },
 

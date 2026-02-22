@@ -7,6 +7,11 @@ import type {
   PaginatedNotificationsResponse,
   SendNotificationRequest,
 } from "./types/dtos/dtos.js";
+import type {
+  notificationChannels,
+  notificationStatuses,
+  notificationTypes,
+} from "./types/enums/enums.js";
 import type { NotificationRow } from "./types/models/models.js";
 
 export interface INotificationService {
@@ -14,9 +19,9 @@ export interface INotificationService {
     query: {
       page: number;
       limit: number;
-      type?: string;
-      channel?: string;
-      status?: string;
+      type?: (typeof notificationTypes)[number];
+      channel?: (typeof notificationChannels)[number];
+      status?: (typeof notificationStatuses)[number];
       appointmentId?: string;
     },
     callerRole: Role,

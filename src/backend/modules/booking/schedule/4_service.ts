@@ -1,5 +1,6 @@
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
+import type { Role } from "../../../core/session/session.guard.js";
 import type { IScheduleRepository } from "./5_repository.js";
 import type {
   GenerateSlotsRequest,
@@ -13,25 +14,25 @@ import type { ScheduleSlotRow } from "./types/models/models.js";
 export interface IScheduleService {
   generate(
     input: GenerateSlotsRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<GenerateSlotsResponse>>;
   listByDate(
     query: ListSlotsQuery,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<ScheduleSlotProfile[]>>;
   updateStatus(
     id: string,
     input: UpdateSlotStatusRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId: string,
   ): Promise<Result<ScheduleSlotProfile>>;
   deleteSlot(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<{ message: string }>>;
 }
@@ -92,7 +93,7 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
    */
   async function checkOperatorAccess(
     operatorId: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerUserId?: string,
   ): Promise<Result<{ id: string; userId: string; tenantId: string }>> {

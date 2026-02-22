@@ -3,8 +3,12 @@ import { z } from "zod";
 /** Horário de um dia (open/close) */
 const dayHoursSchema = z
   .object({
-    open: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM"),
-    close: z.string().regex(/^\d{2}:\d{2}$/, "Formato HH:MM"),
+    open: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Formato HH:MM (00:00-23:59)"),
+    close: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Formato HH:MM (00:00-23:59)"),
+  })
+  .refine((data) => data.open < data.close, {
+    message: "Horário de abertura deve ser anterior ao de fechamento",
+    path: ["close"],
   })
   .nullable();
 
@@ -22,50 +26,9 @@ export const businessHoursSchema = z
   .nullable();
 
 /** URLs de redes sociais */
-export const socialLinksSchema = z.record(z.string(), z.string()).nullable();
-
-/** Schema de validação do Business */
-export const businessEntitySchema = z.object({
-  /** UUID v4 */
-  id: z.string().uuid(),
-  /** ID do tenant proprietário */
-  tenantId: z.string().uuid(),
-  /** Nome do estabelecimento */
-  name: z.string().min(1, "Nome é obrigatório").max(255),
-  /** Slug para URL amigável — lowercase, sem espaços */
-  slug: z
-    .string()
-    .min(1, "Slug é obrigatório")
-    .max(255)
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Slug deve conter apenas letras minúsculas, números e hífens",
-    ),
-  /** Telefone de contato do estabelecimento */
-  phone: z.string().max(20).nullable(),
-  /** E-mail de contato */
-  email: z.string().email().max(255).nullable(),
-  /** CNPJ formatado */
-  cnpj: z.string().max(18).nullable(),
-  /** URL do site */
-  website: z.string().max(500).nullable(),
-  /** Endereço completo */
-  address: z.string().nullable(),
-  /** Descrição do negócio */
-  description: z.string().nullable(),
-  /** URL ou base64 da logo */
-  logoUrl: z.string().nullable(),
-  /** URL ou base64 da imagem de capa */
-  coverUrl: z.string().nullable(),
-  /** Horário de funcionamento */
-  businessHours: businessHoursSchema,
-  /** URLs de redes sociais */
-  socialLinks: socialLinksSchema,
-  /** Ativo — false oculta o negócio */
-  active: z.boolean(),
-  createdAt: z.coerce.date(),
-  updatedAt: z.coerce.date(),
-});
-
-/** Entidade Business — objeto de valor validado */
-export type BusinessEntity = z.infer<typeof businessEntitySchema>;
+export const socialLinksSchema = z
+  .record(z.string(), z.string().max(500))
+  .refine((data) => Object.keys(data).length <= 20, {
+    message: "Máximo de 20 redes sociais",
+  })
+  .nullable();

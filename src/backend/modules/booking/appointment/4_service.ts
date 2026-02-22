@@ -1,5 +1,6 @@
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
+import type { Role } from "../../../core/session/session.guard.js";
 import type { IAppointmentRepository } from "./5_repository.js";
 import type {
   AppointmentProfile,
@@ -17,32 +18,32 @@ export interface IAppointmentService {
   ): Promise<Result<AppointmentProfile>>;
   list(
     query: ListAppointmentsQuery,
-    callerRole: string,
+    callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<PaginatedAppointmentsResponse>>;
   getById(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<AppointmentProfile>>;
   confirm(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<AppointmentProfile>>;
   cancel(
     id: string,
     input: CancelAppointmentRequest,
-    callerRole: string,
+    callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<AppointmentProfile>>;
   complete(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<AppointmentProfile>>;
@@ -55,6 +56,7 @@ function toProfile(row: AppointmentRow): AppointmentProfile {
     operatorId: row.operatorId,
     businessId: row.businessId,
     serviceId: row.serviceId,
+    slotId: row.slotId,
     scheduledAt: row.scheduledAt.toISOString(),
     durationMinutes: row.durationMinutes,
     priceCents: row.priceCents,
@@ -77,7 +79,7 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
    */
   async function checkAppointmentAccess(
     appointment: AppointmentRow,
-    callerRole: string,
+    callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<void>> {
@@ -136,6 +138,14 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
 
       const operator = operatorResult.value;
 
+      // Impede operador de se auto-agendar
+      if (operator.userId === callerUserId) {
+        return R.fail({
+          code: "VALIDATION_ERROR",
+          message: "Operador não pode agendar a si mesmo",
+        });
+      }
+
       // Busca o serviço
       const serviceResult = await repository.findServiceById(input.serviceId);
       if (serviceResult.isErr()) return R.fail(serviceResult.error);
@@ -183,6 +193,7 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
           operatorId: slot.operatorId,
           businessId: operator.businessId,
           serviceId: input.serviceId,
+          slotId: input.slotId,
           scheduledAt,
           durationMinutes,
           priceCents,
@@ -318,19 +329,11 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
           : `[Cancelamento] ${input.reason}`
         : appointment.notes;
 
-      // Computa date e startTime para encontrar o slot
-      const dateStr = appointment.scheduledAt.toISOString().split("T")[0];
-      const hours = String(appointment.scheduledAt.getUTCHours()).padStart(2, "0");
-      const minutes = String(appointment.scheduledAt.getUTCMinutes()).padStart(2, "0");
-      const startTimeStr = `${hours}:${minutes}`;
-
       // Cancela appointment e libera slot em transação atômica
       const cancelResult = await repository.cancelWithSlotRelease(
         id,
         { cancelledAt: new Date(), notes: updatedNotes },
-        appointment.operatorId,
-        dateStr,
-        startTimeStr,
+        appointment.slotId,
       );
       if (cancelResult.isErr()) return R.fail(cancelResult.error);
 

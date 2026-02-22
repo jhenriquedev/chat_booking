@@ -22,14 +22,9 @@ export interface ITenantRepository {
     limit: number;
     active?: boolean;
   }): Promise<Result<{ data: TenantWithUserRow[]; total: number }>>;
-  create(userId: string): Promise<Result<TenantRow>>;
   update(id: string, data: Partial<Pick<TenantRow, "active">>): Promise<Result<TenantRow>>;
   softDelete(id: string): Promise<Result<void>>;
   findUserByPhoneHash(phoneHash: string): Promise<Result<UserRow | null>>;
-  createUser(data: { name: string; phone: string; phoneHash: string; role: string }): Promise<
-    Result<UserRow>
-  >;
-  updateUserRole(userId: string, role: string): Promise<Result<void>>;
   createTenantWithUser(data: {
     existingUserId?: string;
     name: string;
@@ -95,14 +90,6 @@ export function createTenantRepository(container: Container): ITenantRepository 
       }, "DB_QUERY_FAILED");
     },
 
-    async create(userId) {
-      return R.fromAsync(async () => {
-        const rows = await db.insert(tenants).values({ userId }).returning();
-        if (!rows[0]) throw new Error("Insert não retornou registro");
-        return rows[0];
-      }, "DB_QUERY_FAILED");
-    },
-
     async update(id, data) {
       return R.fromAsync(async () => {
         const rows = await db
@@ -138,37 +125,6 @@ export function createTenantRepository(container: Container): ITenantRepository 
           .where(eq(users.phoneHash, phoneHash))
           .limit(1);
         return rows[0] ?? null;
-      }, "DB_QUERY_FAILED");
-    },
-
-    async createUser(data) {
-      return R.fromAsync(async () => {
-        const rows = await db
-          .insert(users)
-          .values({
-            name: data.name,
-            phone: data.phone,
-            phoneHash: data.phoneHash,
-            role: data.role as "USER" | "OPERATOR" | "TENANT" | "OWNER",
-          })
-          .returning({
-            id: users.id,
-            name: users.name,
-            phone: users.phone,
-            phoneHash: users.phoneHash,
-            role: users.role,
-          });
-        if (!rows[0]) throw new Error("Insert não retornou registro");
-        return rows[0];
-      }, "DB_QUERY_FAILED");
-    },
-
-    async updateUserRole(userId, role) {
-      return R.fromAsync(async () => {
-        await db
-          .update(users)
-          .set({ role: role as "USER" | "OPERATOR" | "TENANT" | "OWNER", updatedAt: sql`now()` })
-          .where(eq(users.id, userId));
       }, "DB_QUERY_FAILED");
     },
 

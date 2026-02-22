@@ -1,5 +1,6 @@
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
+import type { Role } from "../../core/session/session.guard.js";
 import type { IServiceRepository } from "./5_repository.js";
 import type {
   CreateServiceRequest,
@@ -13,30 +14,30 @@ import type { ServiceRow } from "./types/models/models.js";
 export interface IServiceService {
   create(
     input: CreateServiceRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<ServiceProfile>>;
   getById(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerBusinessId: string | null,
   ): Promise<Result<ServiceProfile>>;
   listAll(
     query: ListServicesQuery,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
     callerBusinessId: string | null,
   ): Promise<Result<PaginatedServicesResponse>>;
   update(
     id: string,
     input: UpdateServiceRequest,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<ServiceProfile>>;
   delete(
     id: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<{ message: string }>>;
 }
@@ -59,7 +60,7 @@ export function createServiceService(repository: IServiceRepository): IServiceSe
   /** Verifica se a business existe e se o caller tem permissão */
   async function checkBusinessOwnership(
     businessId: string,
-    callerRole: string,
+    callerRole: Role,
     callerTenantId: string | null,
   ): Promise<Result<{ id: string; tenantId: string }>> {
     const businessResult = await repository.findBusinessById(businessId);
@@ -161,6 +162,8 @@ export function createServiceService(repository: IServiceRepository): IServiceSe
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value)
         return R.fail({ code: "NOT_FOUND", message: "Serviço não encontrado" });
+      if (!findResult.value.active)
+        return R.fail({ code: "ALREADY_INACTIVE", message: "Serviço está inativo" });
 
       // Verifica ownership da business do serviço
       const ownershipCheck = await checkBusinessOwnership(

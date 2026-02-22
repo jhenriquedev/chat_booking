@@ -13,13 +13,6 @@ import {
 import type { AppointmentRow } from "./types/models/models.js";
 
 export interface IAppointmentRepository {
-  create(
-    data: Omit<
-      AppointmentRow,
-      "id" | "status" | "cancelledAt" | "completedAt" | "createdAt" | "updatedAt"
-    >,
-  ): Promise<Result<AppointmentRow>>;
-
   findById(id: string): Promise<Result<AppointmentRow | null>>;
 
   findAll(params: {
@@ -50,17 +43,6 @@ export interface IAppointmentRepository {
       status: string;
     } | null>
   >;
-
-  updateSlotStatus(
-    slotId: string,
-    status: "AVAILABLE" | "BOOKED" | "BLOCKED",
-  ): Promise<Result<void>>;
-
-  findSlotByOperatorDateAndTime(
-    operatorId: string,
-    date: string,
-    startTime: string,
-  ): Promise<Result<{ id: string; status: string } | null>>;
 
   findOperatorById(
     operatorId: string,
@@ -105,9 +87,7 @@ export interface IAppointmentRepository {
   cancelWithSlotRelease(
     id: string,
     extra: { cancelledAt: Date; notes: string | null },
-    operatorId: string,
-    date: string,
-    startTime: string,
+    slotId: string | null,
   ): Promise<Result<AppointmentRow>>;
 }
 
@@ -115,26 +95,6 @@ export function createAppointmentRepository(container: Container): IAppointmentR
   const { db } = container;
 
   return {
-    async create(data) {
-      return R.fromAsync(async () => {
-        const rows = await db
-          .insert(appointments)
-          .values({
-            userId: data.userId,
-            operatorId: data.operatorId,
-            businessId: data.businessId,
-            serviceId: data.serviceId,
-            scheduledAt: data.scheduledAt,
-            durationMinutes: data.durationMinutes,
-            priceCents: data.priceCents,
-            notes: data.notes,
-          })
-          .returning();
-        if (!rows[0]) throw new Error("Insert não retornou registro");
-        return rows[0];
-      }, "DB_QUERY_FAILED");
-    },
-
     async findById(id) {
       return R.fromAsync(async () => {
         const rows = await db.select().from(appointments).where(eq(appointments.id, id)).limit(1);
@@ -232,35 +192,6 @@ export function createAppointmentRepository(container: Container): IAppointmentR
       }, "DB_QUERY_FAILED");
     },
 
-    async updateSlotStatus(slotId, status) {
-      return R.fromAsync(async () => {
-        await db
-          .update(scheduleSlots)
-          .set({ status, updatedAt: sql`now()` })
-          .where(eq(scheduleSlots.id, slotId));
-      }, "DB_QUERY_FAILED");
-    },
-
-    async findSlotByOperatorDateAndTime(operatorId, date, startTime) {
-      return R.fromAsync(async () => {
-        const rows = await db
-          .select({
-            id: scheduleSlots.id,
-            status: scheduleSlots.status,
-          })
-          .from(scheduleSlots)
-          .where(
-            and(
-              eq(scheduleSlots.operatorId, operatorId),
-              eq(scheduleSlots.date, date),
-              eq(scheduleSlots.startTime, startTime),
-            ),
-          )
-          .limit(1);
-        return rows[0] ?? null;
-      }, "DB_QUERY_FAILED");
-    },
-
     async findOperatorById(operatorId) {
       return R.fromAsync(async () => {
         const rows = await db
@@ -271,7 +202,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
             tenantId: operators.tenantId,
           })
           .from(operators)
-          .where(eq(operators.id, operatorId))
+          .where(and(eq(operators.id, operatorId), eq(operators.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
@@ -367,6 +298,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
               operatorId: data.operatorId,
               businessId: data.businessId,
               serviceId: data.serviceId,
+              slotId,
               scheduledAt: data.scheduledAt,
               durationMinutes: data.durationMinutes,
               priceCents: data.priceCents,
@@ -390,7 +322,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
       }
     },
 
-    async cancelWithSlotRelease(id, extra, operatorId, date, startTime) {
+    async cancelWithSlotRelease(id, extra, slotId) {
       return R.fromAsync(async () => {
         return db.transaction(async (tx) => {
           // Cancela o appointment
@@ -406,24 +338,12 @@ export function createAppointmentRepository(container: Container): IAppointmentR
             .returning();
           if (!rows[0]) throw new Error("Update não retornou registro");
 
-          // Libera o slot de volta para AVAILABLE
-          const slotRows = await tx
-            .select({ id: scheduleSlots.id, status: scheduleSlots.status })
-            .from(scheduleSlots)
-            .where(
-              and(
-                eq(scheduleSlots.operatorId, operatorId),
-                eq(scheduleSlots.date, date),
-                eq(scheduleSlots.startTime, startTime),
-              ),
-            )
-            .limit(1);
-
-          if (slotRows[0] && slotRows[0].status === "BOOKED") {
+          // Libera o slot de volta para AVAILABLE (se tiver slotId)
+          if (slotId) {
             await tx
               .update(scheduleSlots)
               .set({ status: "AVAILABLE" as const, updatedAt: sql`now()` })
-              .where(eq(scheduleSlots.id, slotRows[0].id));
+              .where(and(eq(scheduleSlots.id, slotId), eq(scheduleSlots.status, "BOOKED")));
           }
 
           return rows[0];
