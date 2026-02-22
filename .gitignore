@@ -18,6 +18,15 @@ src/web/_fresh/
 .cache/
 _fresh
 
+# Drizzle migrations (geradas)
+drizzle/
+
+# Docker volumes
+src/backend/postgres_data/
+src/backend/redis_data/
+src/backend/n8n_data/
+src/backend/evolution_data/
+
 # IDE / SO
 .DS_Store
 Thumbs.db

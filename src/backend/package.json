@@ -1,0 +1,33 @@
+{
+  "name": "chat-booking-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@hono/swagger-ui": "^0.5.0",
+    "@hono/zod-openapi": "^0.19.6",
+    "@scalar/hono-api-reference": "^0.5.170",
+    "drizzle-orm": "^0.39.3",
+    "hono": "^4.7.4",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.13.4",
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

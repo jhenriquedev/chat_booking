@@ -1,11 +1,13 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: photos_postgres
+    container_name: chatbooking_postgres
+    env_file:
+      - .env
     environment:
-      - POSTGRES_DB=photos
-      - POSTGRES_USER=photos
-      - POSTGRES_PASSWORD=photospass
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - TZ=America/Sao_Paulo
     ports:
       - "5432:5432"
@@ -13,7 +15,7 @@ services:
       - ./postgres_data:/var/lib/postgresql/data
       - ./postgres_init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U photos -d photos"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -21,7 +23,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: photos_redis
+    container_name: chatbooking_redis
     ports:
       - "6379:6379"
     volumes:
@@ -35,7 +37,7 @@ services:
 
   n8n:
     image: n8nio/n8n:latest
-    container_name: n8n
+    container_name: chatbooking_n8n
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,12 +45,14 @@ services:
         condition: service_healthy
     ports:
       - "5678:5678"
+    env_file:
+      - .env
     environment:
       - N8N_HOST=localhost
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - NODE_ENV=production
-      - N8N_ENCRYPTION_KEY=troque-por-uma-chave-grande-e-aleatoria
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - GENERIC_TIMEZONE=America/Sao_Paulo
       - TZ=America/Sao_Paulo
 
@@ -56,9 +60,9 @@ services:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=photos
-      - DB_POSTGRESDB_USER=photos
-      - DB_POSTGRESDB_PASSWORD=photospass
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_POSTGRESDB_SCHEMA=n8n
 
       # Redis (fila / queue mode)
@@ -72,7 +76,7 @@ services:
 
   evolution:
     image: evoapicloud/evolution-api:latest
-    container_name: evolution
+    container_name: chatbooking_evolution
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,17 +84,17 @@ services:
         condition: service_healthy
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      - AUTHENTICATION_API_KEY=troque-por-um-token-forte
+      - AUTHENTICATION_API_KEY=${EVOLUTION_KEY}
       - TZ=America/Sao_Paulo
 
       # DB (schema evolution)
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://photos:photospass@postgres:5432/photos?schema=evolution
-
-      # (redundância útil, porque alguns scripts leem DATABASE_URL)
-      - DATABASE_URL=postgresql://photos:photospass@postgres:5432/photos?schema=evolution
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=evolution
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=evolution
 
       # Redis cache (DB 6)
       - CACHE_REDIS_ENABLED=true
