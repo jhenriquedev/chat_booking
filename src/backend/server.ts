@@ -9,6 +9,13 @@ import { errorHandler } from "./core/error/error.handler.js";
 import { loggerMiddleware } from "./core/logger/logger.middleware.js";
 import { sessionGuard } from "./core/session/session.guard.js";
 import { createAuthModule } from "./modules/auth/1_module.js";
+import { createAppointmentFeature } from "./modules/booking/appointment/1_feature.js";
+import { createAvailabilityFeature } from "./modules/booking/availability/1_feature.js";
+import { createScheduleFeature } from "./modules/booking/schedule/1_feature.js";
+import { createBusinessModule } from "./modules/business/1_module.js";
+import { createNotificationModule } from "./modules/notification/1_module.js";
+import { createOperatorModule } from "./modules/operator/1_module.js";
+import { createServiceModule } from "./modules/services/1_module.js";
 import { createTenantModule } from "./modules/tenant/1_module.js";
 import { createUserModule } from "./modules/user/1_module.js";
 
@@ -27,7 +34,7 @@ app.get("/health", (c) => {
 
 // Paths públicos (não exigem JWT)
 const publicPaths = ["/api/auth/login", "/api/auth/refresh"];
-const publicPrefixes = ["/api/users/owner"];
+const publicPrefixes = ["/api/users/owner", "/api/businesses/slug"];
 
 // Auth obrigatória nas rotas de API (exceto paths públicos)
 app.use("/api/*", async (c, next) => {
@@ -44,11 +51,13 @@ registerModules(app, container, {
   "/api/auth": createAuthModule,
   "/api/users": createUserModule,
   "/api/tenants": createTenantModule,
-  // "/api/businesses": createBusinessModule,
-  // "/api/operators": createOperatorModule,
-  // "/api/services": createServicesModule,
-  // "/api/bookings": createBookingModule,
-  // "/api/notifications": createNotificationModule,
+  "/api/businesses": createBusinessModule,
+  "/api/services": createServiceModule,
+  "/api/operators": createOperatorModule,
+  "/api/availability": createAvailabilityFeature,
+  "/api/schedule": createScheduleFeature,
+  "/api/appointments": createAppointmentFeature,
+  "/api/notifications": createNotificationModule,
 });
 
 // Security schemes para rotas protegidas
