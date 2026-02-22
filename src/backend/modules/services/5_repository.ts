@@ -103,7 +103,7 @@ export function createServiceRepository(container: Container): IServiceRepositor
         const rows = await db
           .select({ id: businesses.id, tenantId: businesses.tenantId })
           .from(businesses)
-          .where(eq(businesses.id, businessId))
+          .where(and(eq(businesses.id, businessId), eq(businesses.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");

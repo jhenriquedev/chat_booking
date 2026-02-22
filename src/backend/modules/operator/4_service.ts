@@ -192,7 +192,7 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         page: query.page,
         limit: query.limit,
         businessId: query.businessId,
-        active: query.active ?? true,
+        active: query.active,
       });
       if (result.isErr()) return R.fail(result.error);
 

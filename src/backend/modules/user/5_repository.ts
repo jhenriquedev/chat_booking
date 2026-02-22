@@ -2,7 +2,7 @@ import { and, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { operators, tenants, users } from "../../shared/schemas/index.js";
+import { appointments, businesses, operators, tenants, users } from "../../shared/schemas/index.js";
 import type { UserRow } from "./types/models/models.js";
 
 export interface IUserRepository {
@@ -92,6 +92,14 @@ export function createUserRepository(container: Container): IUserRepository {
                   .select({ userId: tenants.userId })
                   .from(tenants)
                   .where(eq(tenants.id, params.tenantId)),
+              ),
+              inArray(
+                users.id,
+                db
+                  .select({ userId: appointments.userId })
+                  .from(appointments)
+                  .innerJoin(businesses, eq(appointments.businessId, businesses.id))
+                  .where(eq(businesses.tenantId, params.tenantId)),
               ),
             ),
           );
