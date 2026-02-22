@@ -62,8 +62,9 @@ export function createAuthService(container: Container, repository: IAuthReposit
   return {
     /** Login: find-or-create user, gera par de tokens */
     async login(input: LoginRequest): Promise<Result<LoginResponse>> {
-      // 1. Busca user pelo phoneHash
-      const userResult = await repository.findUserByPhoneHash(input.phoneHash);
+      // 1. Gera hash do telefone e busca user
+      const phoneHash = hashToken(input.phone);
+      const userResult = await repository.findUserByPhoneHash(phoneHash);
       if (userResult.isErr()) return R.fail(userResult.error);
 
       let user = userResult.value;
@@ -73,7 +74,7 @@ export function createAuthService(container: Container, repository: IAuthReposit
         const createResult = await repository.createUser({
           name: input.name ?? input.phone,
           phone: input.phone,
-          phoneHash: input.phoneHash,
+          phoneHash,
         });
         if (createResult.isErr()) return R.fail(createResult.error);
         user = createResult.value;
@@ -106,6 +107,7 @@ export function createAuthService(container: Container, repository: IAuthReposit
       return R.ok({
         accessToken,
         refreshToken: rawRefreshToken,
+        expiresIn: config.ACCESS_TOKEN_EXPIRES_IN,
         user: {
           id: user.id,
           name: user.name,
@@ -164,7 +166,7 @@ export function createAuthService(container: Container, repository: IAuthReposit
       });
       if (storeResult.isErr()) return R.fail(storeResult.error);
 
-      return R.ok({ accessToken, refreshToken: newRawRefreshToken });
+      return R.ok({ accessToken, refreshToken: newRawRefreshToken, expiresIn: config.ACCESS_TOKEN_EXPIRES_IN });
     },
 
     /** Logout: invalida todos os refresh tokens do usuário */

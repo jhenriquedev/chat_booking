@@ -6,8 +6,6 @@ import { z } from "zod";
 export const loginRequestSchema = z.object({
   /** Telefone internacional — ex: +5511999999999 */
   phone: z.string().min(1, "Telefone é obrigatório").max(20),
-  /** Hash do telefone para busca segura */
-  phoneHash: z.string().min(1, "Hash do telefone é obrigatório").max(128),
   /** Nome do usuário (opcional, usado no auto-cadastro) */
   name: z.string().min(1).max(255).optional(),
 });
@@ -27,6 +25,8 @@ export type LoginUser = z.infer<typeof loginUserSchema>;
 export const loginResponseSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
+  /** Tempo de expiração do access token em segundos */
+  expiresIn: z.number(),
   user: loginUserSchema,
 });
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
@@ -43,6 +43,8 @@ export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
 export const refreshResponseSchema = z.object({
   accessToken: z.string(),
   refreshToken: z.string(),
+  /** Tempo de expiração do access token em segundos */
+  expiresIn: z.number(),
 });
 export type RefreshResponse = z.infer<typeof refreshResponseSchema>;
 
