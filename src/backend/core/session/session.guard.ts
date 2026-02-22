@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
-import { jwt } from "hono/jwt";
 import { createMiddleware } from "hono/factory";
+import { jwt } from "hono/jwt";
 import { config } from "../config/config.js";
 
 export const Roles = {

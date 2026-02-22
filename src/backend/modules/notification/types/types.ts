@@ -1,1 +1,5 @@
-// Barrel file para os types
+export {
+  type NotificationEntity,
+  notificationEntitySchema,
+  validateNotification,
+} from "./entities/entities.js";

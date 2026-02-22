@@ -1,1 +1,1 @@
-// Barrel file para os types
+export { type TenantEntity, tenantEntitySchema, validateTenant } from "./entities/entities.js";

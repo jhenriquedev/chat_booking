@@ -1,1 +1,1 @@
-// Barrel file para os types
+export { type UserEntity, userEntitySchema, validateUser } from "./entities/entities.js";

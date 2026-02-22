@@ -1,1 +1,1 @@
-// Barrel file para os types
+export { type ServiceEntity, serviceEntitySchema, validateService } from "./entities/entities.js";

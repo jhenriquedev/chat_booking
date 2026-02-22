@@ -1,12 +1,34 @@
-// faz mappers e serialização de objetos para entidades
-// métodos:
-//   toJson (converte a si mesmo para json)
-//   fromJson (converte json para model e recebe um json como argumento)
-//   toEntity (converte a si mesmo para entidade)
-//   fromEntity (recebe entity no argumento e retorna model)
-//   copyWith
-//   create (query para salvar a si mesmo no banco de dados)
-//   update (query para atualizar a si mesmo no banco de dados)
-//   delete (query para deletar logicamente a si mesmo no banco de dados)
-//   findById (query para encontrar um registro pelo id)
-//   search (query para fazer buscas no banco de dados, retorna 1 lista que pode ser vazia)
+import type { RefreshTokenEntity } from "../entities/entities.js";
+
+/** Row do refresh_tokens retornada pelo Drizzle */
+export type RefreshTokenRow = {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: Date;
+  createdAt: Date;
+};
+
+/** Row do users (subset necessário para auth) */
+export type UserRow = {
+  id: string;
+  name: string;
+  phone: string;
+  phoneHash: string;
+  email: string | null;
+  role: "USER" | "OPERATOR" | "TENANT" | "OWNER";
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+/** Converte row do DB para RefreshTokenEntity */
+export function toRefreshTokenEntity(row: RefreshTokenRow): RefreshTokenEntity {
+  return {
+    id: row.id,
+    userId: row.userId,
+    token: row.token,
+    expiresAt: row.expiresAt,
+    createdAt: row.createdAt,
+  };
+}

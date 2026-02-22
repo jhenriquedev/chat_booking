@@ -1,0 +1,9 @@
+node_modules
+dist
+postgres_data
+redis_data
+n8n_data
+evolution_data
+.env
+.env.*
+*.log

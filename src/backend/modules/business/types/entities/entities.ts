@@ -1,2 +1,36 @@
-// apenas definição de entities anemicas (objeto de valor de negócio)
-// deve ter apenas o método: validate(valida a si mesmo)
+import { z } from "zod";
+
+/** Schema de validação do Business */
+export const businessEntitySchema = z.object({
+  /** UUID v4 */
+  id: z.string().uuid(),
+  /** ID do tenant proprietário */
+  tenantId: z.string().uuid(),
+  /** Nome do estabelecimento */
+  name: z.string().min(1, "Nome é obrigatório").max(255),
+  /** Slug para URL amigável — lowercase, sem espaços */
+  slug: z
+    .string()
+    .min(1, "Slug é obrigatório")
+    .max(255)
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      "Slug deve conter apenas letras minúsculas, números e hífens",
+    ),
+  /** Telefone de contato do estabelecimento */
+  phone: z.string().max(20).nullable(),
+  /** Endereço completo */
+  address: z.string().nullable(),
+  /** Ativo — false oculta o negócio */
+  active: z.boolean(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+/** Entidade Business — objeto de valor validado */
+export type BusinessEntity = z.infer<typeof businessEntitySchema>;
+
+/** Valida dados e retorna um BusinessEntity */
+export function validateBusiness(data: unknown): BusinessEntity {
+  return businessEntitySchema.parse(data);
+}

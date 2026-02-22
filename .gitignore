@@ -5,7 +5,6 @@
 # Dependencias
 node_modules/
 pnpm-lock.yaml
-package-lock.json
 yarn.lock
 
 # Build / artefatos
@@ -18,8 +17,8 @@ src/web/_fresh/
 .cache/
 _fresh
 
-# Drizzle migrations (geradas)
-drizzle/
+# Drizzle migrations — commitadas para uso no Docker prd
+# drizzle/
 
 # Docker volumes
 src/backend/postgres_data/
@@ -60,3 +59,5 @@ sharp-layer.zip
 
 legado/n8n/*
 legado/docs/*
+
+.claude

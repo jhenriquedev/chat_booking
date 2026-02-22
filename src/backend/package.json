@@ -5,16 +5,18 @@
   "type": "module",
   "scripts": {
     "check": "biome check . && tsc --noEmit",
-    "server:up": "npm run check && echo '✓ Code OK' && docker compose up -d --wait && echo '✓ All services healthy' && npm run db:migrate && echo '✓ Migrations applied' && tsx watch server.ts",
+    "server:up": "npm run check && echo '✓ Code OK' && docker compose up -d --wait && echo '✓ All services healthy' && npm run db:migrate && echo '✓ Migrations applied' && tsx watch --env-file=.env server.ts",
+    "server:up:prd": "npm run check && echo '✓ Code OK' && docker compose -f docker-compose.yml -f docker-compose.prd.yml up -d --build --wait && echo '✓ All services healthy (production)'",
     "server:stop": "docker compose down",
-    "dev": "tsx watch server.ts",
+    "server:stop:prd": "docker compose -f docker-compose.yml -f docker-compose.prd.yml down",
+    "dev": "tsx watch --env-file=.env server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:generate": "tsx node_modules/.bin/drizzle-kit generate",
+    "db:migrate": "tsx node_modules/.bin/drizzle-kit migrate",
+    "db:studio": "tsx node_modules/.bin/drizzle-kit studio"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.8",

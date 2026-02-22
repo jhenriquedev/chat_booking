@@ -72,10 +72,7 @@ export const Result = {
    * }, "DB_QUERY_FAILED");
    * ```
    */
-  async fromAsync<T>(
-    fn: () => Promise<T>,
-    errorCode = "UNEXPECTED_ERROR",
-  ): Promise<Result<T>> {
+  async fromAsync<T>(fn: () => Promise<T>, errorCode = "UNEXPECTED_ERROR"): Promise<Result<T>> {
     try {
       const value = await fn();
       return Result.ok(value);

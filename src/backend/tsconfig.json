@@ -17,9 +17,14 @@
     "sourceMap": true,
     "paths": {
       "@core/*": ["./core/*"],
-      "@modules/*": ["./modules/*"]
+      "@modules/*": ["./modules/*"],
+      "@shared/*": ["./shared/*"]
     },
   },
   "include": ["./**/*.ts"],
-  "exclude": ["node_modules", "dist", "drizzle"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "drizzle"
+  ]
 }

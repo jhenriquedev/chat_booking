@@ -18,6 +18,8 @@ const envSchema = z.object({
 
   // Auth
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  ACCESS_TOKEN_EXPIRES_IN: z.coerce.number().default(900), // 15 min
+  REFRESH_TOKEN_EXPIRES_IN: z.coerce.number().default(604800), // 7 dias
 });
 
 export type Config = z.infer<typeof envSchema>;

@@ -1,1 +1,5 @@
-// Barrel file para os types
+export {
+  type AppointmentEntity,
+  appointmentEntitySchema,
+  validateAppointment,
+} from "./entities/entities.js";

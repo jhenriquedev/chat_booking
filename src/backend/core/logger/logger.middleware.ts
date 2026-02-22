@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
-import { getSession, type SessionPayload } from "../session/session.guard.js";
+import { type SessionPayload, getSession } from "../session/session.guard.js";
 
 const CORRELATION_HEADER = "X-Correlation-ID";
 
@@ -22,9 +22,7 @@ const formatLog = (entry: LogEntry): string => {
   const user = entry.userId ? `[${entry.role}:${entry.userId}]` : "[anonymous]";
   const tenant = entry.tenantId ? `[tenant:${entry.tenantId}]` : "";
   const status =
-    entry.status >= 400
-      ? `\x1b[31m${entry.status}\x1b[0m`
-      : `\x1b[32m${entry.status}\x1b[0m`;
+    entry.status >= 400 ? `\x1b[31m${entry.status}\x1b[0m` : `\x1b[32m${entry.status}\x1b[0m`;
 
   return `${entry.timestamp} [${entry.correlationId}] ${entry.method} ${entry.path} ${status} ${entry.duration}ms ${user} ${tenant}`.trim();
 };
@@ -63,7 +61,8 @@ export const loggerMiddleware = createMiddleware(async (c: Context, next: Next) 
 
   let session: Partial<SessionPayload> = {};
   try {
-    session = getSession(c);
+    const payload = getSession(c);
+    if (payload) session = payload;
   } catch {
     // rota pública, sem sessão
   }
