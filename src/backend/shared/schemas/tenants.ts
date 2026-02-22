@@ -1,6 +1,6 @@
 import { boolean, timestamp, uuid } from "drizzle-orm/pg-core";
-import { chatBookingSchema } from "../../shared/schema.js";
-import { users } from "../user/schema.js";
+import { chatBookingSchema } from "../schema.js";
+import { users } from "./users.js";
 
 /** Tenant — dono de negócio(s) no sistema multi-tenant */
 export const tenants = chatBookingSchema.table("tenants", {

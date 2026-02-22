@@ -136,8 +136,8 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         });
       }
 
-      // Cria o operador
-      const createResult = await repository.create({
+      // Cria o operador e promove role em transação atômica
+      const createResult = await repository.createWithRolePromotion({
         userId: input.userId,
         businessId: input.businessId,
         tenantId,
@@ -145,10 +145,6 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         canEditService: input.canEditService ?? false,
       });
       if (createResult.isErr()) return R.fail(createResult.error);
-
-      // Promove role do user para OPERATOR
-      const roleResult = await repository.updateUserRole(input.userId, "OPERATOR");
-      if (roleResult.isErr()) return R.fail(roleResult.error);
 
       return R.ok(toProfile(createResult.value));
     },
@@ -232,7 +228,8 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         return R.fail({ code: "ALREADY_INACTIVE", message: "Operador já está inativo" });
       }
 
-      const deleteResult = await repository.softDelete(id);
+      // Desativa operador e reverte role em transação atômica
+      const deleteResult = await repository.softDeleteWithRoleRevert(id, findResult.value.userId);
       if (deleteResult.isErr()) return R.fail(deleteResult.error);
 
       return R.ok({ message: "Operador desativado com sucesso" });

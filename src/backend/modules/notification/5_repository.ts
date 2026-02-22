@@ -2,10 +2,7 @@ import { and, count, desc, eq, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { appointments } from "../booking/appointment/schema.js";
-import { businesses } from "../business/schema.js";
-import { operators } from "../operator/schema.js";
-import { notifications } from "./schema.js";
+import { appointments, businesses, notifications, operators } from "../../shared/schemas/index.js";
 import type { NotificationRow } from "./types/models/models.js";
 
 export interface INotificationRepository {
@@ -63,6 +60,7 @@ export function createNotificationRepository(container: Container): INotificatio
             content: data.content,
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -132,6 +130,7 @@ export function createNotificationRepository(container: Container): INotificatio
           })
           .where(eq(notifications.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },

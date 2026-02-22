@@ -2,8 +2,7 @@ import { and, eq, gt, lt, sql } from "drizzle-orm";
 import type { Container } from "../../../core/container/container.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
-import { operators } from "../../operator/schema.js";
-import { availabilityRules } from "./schema.js";
+import { availabilityRules, operators } from "../../../shared/schemas/index.js";
 import type { AvailabilityRuleRow } from "./types/models/models.js";
 
 export interface IAvailabilityRepository {
@@ -90,6 +89,7 @@ export function createAvailabilityRepository(container: Container): IAvailabilit
             endTime: data.endTime,
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -101,6 +101,7 @@ export function createAvailabilityRepository(container: Container): IAvailabilit
           .set({ ...data, updatedAt: sql`now()` })
           .where(eq(availabilityRules.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },

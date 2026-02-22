@@ -53,6 +53,7 @@ function toProfile(row: ScheduleSlotRow): ScheduleSlotProfile {
 function addMinutes(time: string, minutes: number): string {
   const [h, m] = time.split(":").map(Number);
   const total = h * 60 + m + minutes;
+  if (total >= 1440) return "24:00";
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 

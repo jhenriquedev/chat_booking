@@ -2,7 +2,7 @@ import { and, count, eq, ilike, or, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { users } from "./schema.js";
+import { users } from "../../shared/schemas/index.js";
 import type { UserRow } from "./types/models/models.js";
 
 export interface IUserRepository {
@@ -54,6 +54,7 @@ export function createUserRepository(container: Container): IUserRepository {
             role: data.role ?? "USER",
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -98,6 +99,7 @@ export function createUserRepository(container: Container): IUserRepository {
           .set({ ...data, updatedAt: sql`now()` })
           .where(eq(users.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },

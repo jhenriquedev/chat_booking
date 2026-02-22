@@ -2,11 +2,14 @@ import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import type { Container } from "../../../core/container/container.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
-import { businesses } from "../../business/schema.js";
-import { operatorServices, operators } from "../../operator/schema.js";
-import { services } from "../../services/schema.js";
-import { scheduleSlots } from "../schedule/schema.js";
-import { appointments } from "./schema.js";
+import {
+  appointments,
+  businesses,
+  operatorServices,
+  operators,
+  scheduleSlots,
+  services,
+} from "../../../shared/schemas/index.js";
 import type { AppointmentRow } from "./types/models/models.js";
 
 export interface IAppointmentRepository {
@@ -90,6 +93,22 @@ export interface IAppointmentRepository {
   >;
 
   findBusinessById(businessId: string): Promise<Result<{ id: string; tenantId: string } | null>>;
+
+  createWithSlotBooking(
+    data: Omit<
+      AppointmentRow,
+      "id" | "status" | "cancelledAt" | "completedAt" | "createdAt" | "updatedAt"
+    >,
+    slotId: string,
+  ): Promise<Result<AppointmentRow>>;
+
+  cancelWithSlotRelease(
+    id: string,
+    extra: { cancelledAt: Date; notes: string | null },
+    operatorId: string,
+    date: string,
+    startTime: string,
+  ): Promise<Result<AppointmentRow>>;
 }
 
 export function createAppointmentRepository(container: Container): IAppointmentRepository {
@@ -111,6 +130,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
             notes: data.notes,
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -183,6 +203,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
           })
           .where(eq(appointments.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -315,6 +336,82 @@ export function createAppointmentRepository(container: Container): IAppointmentR
           .where(eq(businesses.id, businessId))
           .limit(1);
         return rows[0] ?? null;
+      }, "DB_QUERY_FAILED");
+    },
+
+    async createWithSlotBooking(data, slotId) {
+      return R.fromAsync(async () => {
+        return db.transaction(async (tx) => {
+          // Atualiza slot para BOOKED apenas se ainda estiver AVAILABLE (lock otimista)
+          const slotUpdate = await tx
+            .update(scheduleSlots)
+            .set({ status: "BOOKED" as const, updatedAt: sql`now()` })
+            .where(and(eq(scheduleSlots.id, slotId), eq(scheduleSlots.status, "AVAILABLE")))
+            .returning({ id: scheduleSlots.id });
+
+          if (slotUpdate.length === 0) {
+            throw new Error("Slot não está disponível");
+          }
+
+          // Cria o appointment
+          const rows = await tx
+            .insert(appointments)
+            .values({
+              userId: data.userId,
+              operatorId: data.operatorId,
+              businessId: data.businessId,
+              serviceId: data.serviceId,
+              scheduledAt: data.scheduledAt,
+              durationMinutes: data.durationMinutes,
+              priceCents: data.priceCents,
+              notes: data.notes,
+            })
+            .returning();
+          if (!rows[0]) throw new Error("Insert não retornou registro");
+
+          return rows[0];
+        });
+      }, "DB_QUERY_FAILED");
+    },
+
+    async cancelWithSlotRelease(id, extra, operatorId, date, startTime) {
+      return R.fromAsync(async () => {
+        return db.transaction(async (tx) => {
+          // Cancela o appointment
+          const rows = await tx
+            .update(appointments)
+            .set({
+              status: "CANCELLED" as const,
+              updatedAt: sql`now()`,
+              cancelledAt: extra.cancelledAt,
+              notes: extra.notes,
+            })
+            .where(eq(appointments.id, id))
+            .returning();
+          if (!rows[0]) throw new Error("Update não retornou registro");
+
+          // Libera o slot de volta para AVAILABLE
+          const slotRows = await tx
+            .select({ id: scheduleSlots.id, status: scheduleSlots.status })
+            .from(scheduleSlots)
+            .where(
+              and(
+                eq(scheduleSlots.operatorId, operatorId),
+                eq(scheduleSlots.date, date),
+                eq(scheduleSlots.startTime, startTime),
+              ),
+            )
+            .limit(1);
+
+          if (slotRows[0] && slotRows[0].status === "BOOKED") {
+            await tx
+              .update(scheduleSlots)
+              .set({ status: "AVAILABLE" as const, updatedAt: sql`now()` })
+              .where(eq(scheduleSlots.id, slotRows[0].id));
+          }
+
+          return rows[0];
+        });
       }, "DB_QUERY_FAILED");
     },
   };

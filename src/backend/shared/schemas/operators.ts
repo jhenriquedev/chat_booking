@@ -1,9 +1,9 @@
 import { boolean, integer, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { chatBookingSchema } from "../../shared/schema.js";
-import { businesses } from "../business/schema.js";
-import { services } from "../services/schema.js";
-import { tenants } from "../tenant/schema.js";
-import { users } from "../user/schema.js";
+import { chatBookingSchema } from "../schema.js";
+import { businesses } from "./businesses.js";
+import { services } from "./services.js";
+import { tenants } from "./tenants.js";
+import { users } from "./users.js";
 
 /** Operador — profissional vinculado a uma business (barbeiro, esteticista, etc.) */
 export const operators = chatBookingSchema.table("operators", {

@@ -2,10 +2,13 @@ import { and, count, eq, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { businesses } from "../business/schema.js";
-import { services } from "../services/schema.js";
-import { users } from "../user/schema.js";
-import { operatorServices, operators } from "./schema.js";
+import {
+  businesses,
+  operatorServices,
+  operators,
+  services,
+  users,
+} from "../../shared/schemas/index.js";
 import type { OperatorRow, OperatorServiceRow } from "./types/models/models.js";
 
 export interface IOperatorRepository {
@@ -34,6 +37,10 @@ export interface IOperatorRepository {
     data: Omit<OperatorServiceRow, "id" | "active" | "createdAt">,
   ): Promise<Result<OperatorServiceRow>>;
   softDeleteOperatorService(operatorId: string, serviceId: string): Promise<Result<void>>;
+  createWithRolePromotion(
+    data: Omit<OperatorRow, "id" | "active" | "createdAt" | "updatedAt">,
+  ): Promise<Result<OperatorRow>>;
+  softDeleteWithRoleRevert(id: string, userId: string): Promise<Result<void>>;
 }
 
 export function createOperatorRepository(container: Container): IOperatorRepository {
@@ -49,7 +56,11 @@ export function createOperatorRepository(container: Container): IOperatorReposit
 
     async findByUserId(userId) {
       return R.fromAsync(async () => {
-        const rows = await db.select().from(operators).where(eq(operators.userId, userId)).limit(1);
+        const rows = await db
+          .select()
+          .from(operators)
+          .where(and(eq(operators.userId, userId), eq(operators.active, true)))
+          .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
     },
@@ -91,6 +102,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
             canEditService: data.canEditService,
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -102,6 +114,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
           .set({ ...data, updatedAt: sql`now()` })
           .where(eq(operators.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -185,6 +198,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
             durationMinutes: data.durationMinutes,
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -201,6 +215,47 @@ export function createOperatorRepository(container: Container): IOperatorReposit
               eq(operatorServices.active, true),
             ),
           );
+      }, "DB_QUERY_FAILED");
+    },
+
+    async createWithRolePromotion(data) {
+      return R.fromAsync(async () => {
+        return db.transaction(async (tx) => {
+          const rows = await tx
+            .insert(operators)
+            .values({
+              userId: data.userId,
+              businessId: data.businessId,
+              tenantId: data.tenantId,
+              displayName: data.displayName,
+              canEditService: data.canEditService,
+            })
+            .returning();
+          if (!rows[0]) throw new Error("Insert não retornou registro");
+
+          await tx
+            .update(users)
+            .set({ role: "OPERATOR" as const, updatedAt: sql`now()` })
+            .where(eq(users.id, data.userId));
+
+          return rows[0];
+        });
+      }, "DB_QUERY_FAILED");
+    },
+
+    async softDeleteWithRoleRevert(id, userId) {
+      return R.fromAsync(async () => {
+        await db.transaction(async (tx) => {
+          await tx
+            .update(operators)
+            .set({ active: false, updatedAt: sql`now()` })
+            .where(eq(operators.id, id));
+
+          await tx
+            .update(users)
+            .set({ role: "USER" as const, updatedAt: sql`now()` })
+            .where(eq(users.id, userId));
+        });
       }, "DB_QUERY_FAILED");
     },
   };

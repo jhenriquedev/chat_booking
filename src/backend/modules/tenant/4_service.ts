@@ -48,13 +48,13 @@ export function createTenantService(repository: ITenantRepository): ITenantServi
       const userResult = await repository.findUserByPhoneHash(phoneHash);
       if (userResult.isErr()) return R.fail(userResult.error);
 
-      let userId: string;
+      let existingUserId: string | undefined;
 
       if (userResult.value) {
-        // 2a. User existe — verifica se já é tenant
-        userId = userResult.value.id;
+        // 2. User existe — verifica se já é tenant
+        existingUserId = userResult.value.id;
 
-        const existingTenant = await repository.findByUserId(userId);
+        const existingTenant = await repository.findByUserId(existingUserId);
         if (existingTenant.isErr()) return R.fail(existingTenant.error);
         if (existingTenant.value) {
           return R.fail({
@@ -62,27 +62,18 @@ export function createTenantService(repository: ITenantRepository): ITenantServi
             message: "Este telefone já está vinculado a um tenant",
           });
         }
-      } else {
-        // 2b. User não existe — cria com role TENANT
-        const createUserResult = await repository.createUser({
-          name: input.name ?? input.phone,
-          phone: input.phone,
-          phoneHash,
-          role: "TENANT",
-        });
-        if (createUserResult.isErr()) return R.fail(createUserResult.error);
-        userId = createUserResult.value.id;
       }
 
-      // 3. Cria o tenant
-      const createResult = await repository.create(userId);
+      // 3. Cria tenant + user/role em transação atômica
+      const createResult = await repository.createTenantWithUser({
+        existingUserId,
+        name: input.name ?? input.phone,
+        phone: input.phone,
+        phoneHash,
+      });
       if (createResult.isErr()) return R.fail(createResult.error);
 
-      // 4. Promove role do user para TENANT (caso user já existia com role USER)
-      const roleResult = await repository.updateUserRole(userId, "TENANT");
-      if (roleResult.isErr()) return R.fail(roleResult.error);
-
-      // 5. Busca tenant com dados do user para response
+      // 4. Busca tenant com dados do user para response
       const tenantResult = await repository.findById(createResult.value.id);
       if (tenantResult.isErr()) return R.fail(tenantResult.error);
       if (!tenantResult.value)

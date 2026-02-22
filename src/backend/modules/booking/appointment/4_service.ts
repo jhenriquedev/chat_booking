@@ -111,23 +111,6 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
     return R.fail({ code: "FORBIDDEN", message: "Permissão insuficiente" });
   }
 
-  /** Libera o slot associado a um appointment de volta para AVAILABLE */
-  async function releaseSlot(appointment: AppointmentRow): Promise<void> {
-    const dateStr = appointment.scheduledAt.toISOString().split("T")[0];
-    const hours = String(appointment.scheduledAt.getUTCHours()).padStart(2, "0");
-    const minutes = String(appointment.scheduledAt.getUTCMinutes()).padStart(2, "0");
-    const startTimeStr = `${hours}:${minutes}`;
-
-    const slotResult = await repository.findSlotByOperatorDateAndTime(
-      appointment.operatorId,
-      dateStr,
-      startTimeStr,
-    );
-    if (slotResult.isOk() && slotResult.value && slotResult.value.status === "BOOKED") {
-      await repository.updateSlotStatus(slotResult.value.id, "AVAILABLE");
-    }
-  }
-
   return {
     async create(input, callerUserId) {
       // Busca o slot
@@ -185,22 +168,21 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
       // Computa scheduledAt a partir do slot
       const scheduledAt = new Date(`${slot.date}T${slot.startTime}Z`);
 
-      // Cria o appointment
-      const createResult = await repository.create({
-        userId: callerUserId,
-        operatorId: slot.operatorId,
-        businessId: operator.businessId,
-        serviceId: input.serviceId,
-        scheduledAt,
-        durationMinutes,
-        priceCents,
-        notes: input.notes ?? null,
-      });
+      // Cria o appointment e marca slot como BOOKED em transação atômica
+      const createResult = await repository.createWithSlotBooking(
+        {
+          userId: callerUserId,
+          operatorId: slot.operatorId,
+          businessId: operator.businessId,
+          serviceId: input.serviceId,
+          scheduledAt,
+          durationMinutes,
+          priceCents,
+          notes: input.notes ?? null,
+        },
+        input.slotId,
+      );
       if (createResult.isErr()) return R.fail(createResult.error);
-
-      // Marca o slot como BOOKED
-      const slotUpdateResult = await repository.updateSlotStatus(input.slotId, "BOOKED");
-      if (slotUpdateResult.isErr()) return R.fail(slotUpdateResult.error);
 
       return R.ok(toProfile(createResult.value));
     },
@@ -328,16 +310,23 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
           : `[Cancelamento] ${input.reason}`
         : appointment.notes;
 
-      const updateResult = await repository.updateStatus(id, "CANCELLED", {
-        cancelledAt: new Date(),
-        notes: updatedNotes,
-      });
-      if (updateResult.isErr()) return R.fail(updateResult.error);
+      // Computa date e startTime para encontrar o slot
+      const dateStr = appointment.scheduledAt.toISOString().split("T")[0];
+      const hours = String(appointment.scheduledAt.getUTCHours()).padStart(2, "0");
+      const minutes = String(appointment.scheduledAt.getUTCMinutes()).padStart(2, "0");
+      const startTimeStr = `${hours}:${minutes}`;
 
-      // Libera o slot de volta para AVAILABLE
-      await releaseSlot(appointment);
+      // Cancela appointment e libera slot em transação atômica
+      const cancelResult = await repository.cancelWithSlotRelease(
+        id,
+        { cancelledAt: new Date(), notes: updatedNotes },
+        appointment.operatorId,
+        dateStr,
+        startTimeStr,
+      );
+      if (cancelResult.isErr()) return R.fail(cancelResult.error);
 
-      return R.ok(toProfile(updateResult.value));
+      return R.ok(toProfile(cancelResult.value));
     },
 
     async complete(id, callerRole, callerUserId, callerTenantId) {

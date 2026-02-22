@@ -142,7 +142,10 @@ export function createBusinessService(repository: IBusinessRepository): IBusines
       // TENANT só vê suas businesses; OWNER pode filtrar por tenantId
       let tenantId: string | undefined;
       if (callerRole === "TENANT") {
-        tenantId = callerTenantId ?? undefined;
+        if (!callerTenantId) {
+          return R.fail({ code: "FORBIDDEN", message: "Usuário não está vinculado a um tenant" });
+        }
+        tenantId = callerTenantId;
       } else {
         tenantId = query.tenantId;
       }

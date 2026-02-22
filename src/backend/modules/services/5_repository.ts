@@ -2,8 +2,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { businesses } from "../business/schema.js";
-import { services } from "./schema.js";
+import { businesses, services } from "../../shared/schemas/index.js";
 import type { ServiceRow } from "./types/models/models.js";
 
 export interface IServiceRepository {
@@ -70,6 +69,7 @@ export function createServiceRepository(container: Container): IServiceRepositor
             priceCents: data.priceCents,
           })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -81,6 +81,7 @@ export function createServiceRepository(container: Container): IServiceRepositor
           .set({ ...data, updatedAt: sql`now()` })
           .where(eq(services.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },

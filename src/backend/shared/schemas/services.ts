@@ -1,6 +1,6 @@
 import { boolean, integer, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { chatBookingSchema } from "../../shared/schema.js";
-import { businesses } from "../business/schema.js";
+import { chatBookingSchema } from "../schema.js";
+import { businesses } from "./businesses.js";
 
 /** Serviço oferecido por uma business — ex: "Corte masculino", "Barba" */
 export const services = chatBookingSchema.table("services", {

@@ -1,6 +1,6 @@
 import { boolean, integer, time, timestamp, uuid } from "drizzle-orm/pg-core";
-import { chatBookingSchema } from "../../../shared/schema.js";
-import { operators } from "../../operator/schema.js";
+import { chatBookingSchema } from "../schema.js";
+import { operators } from "./operators.js";
 
 /** Regras de disponibilidade recorrente — define os horários semanais do operador */
 export const availabilityRules = chatBookingSchema.table("availability_rules", {

@@ -1,6 +1,6 @@
 import { timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { chatBookingSchema } from "../../shared/schema.js";
-import { users } from "../user/schema.js";
+import { chatBookingSchema } from "../schema.js";
+import { users } from "./users.js";
 
 /** Refresh tokens — armazena tokens de renovação de sessão JWT */
 export const refreshTokens = chatBookingSchema.table("refresh_tokens", {

@@ -1,5 +1,5 @@
 import { boolean, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { chatBookingSchema, userRoleEnum } from "../../shared/schema.js";
+import { chatBookingSchema, userRoleEnum } from "../schema.js";
 
 /** Usuários do sistema — qualquer pessoa que interage com a plataforma */
 export const users = chatBookingSchema.table("users", {

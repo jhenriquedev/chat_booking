@@ -1,6 +1,6 @@
 import { boolean, jsonb, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { chatBookingSchema } from "../../shared/schema.js";
-import { tenants } from "../tenant/schema.js";
+import { chatBookingSchema } from "../schema.js";
+import { tenants } from "./tenants.js";
 
 /** Business — estabelecimento (barbearia, estética, etc.) pertencente a um tenant */
 export const businesses = chatBookingSchema.table("businesses", {

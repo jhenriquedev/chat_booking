@@ -28,6 +28,7 @@ const STATUS_MAP: Record<string, ContentfulStatusCode> = {
 
   // Negócio
   BUSINESS_RULE_VIOLATION: 422,
+  ALREADY_INACTIVE: 409,
 
   // Infraestrutura
   DB_QUERY_FAILED: 500,

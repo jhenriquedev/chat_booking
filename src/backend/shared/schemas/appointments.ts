@@ -1,9 +1,9 @@
 import { integer, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { appointmentStatusEnum, chatBookingSchema } from "../../../shared/schema.js";
-import { businesses } from "../../business/schema.js";
-import { operators } from "../../operator/schema.js";
-import { services } from "../../services/schema.js";
-import { users } from "../../user/schema.js";
+import { appointmentStatusEnum, chatBookingSchema } from "../schema.js";
+import { businesses } from "./businesses.js";
+import { operators } from "./operators.js";
+import { services } from "./services.js";
+import { users } from "./users.js";
 
 /** Agendamento — registro de um atendimento entre usuário e operador */
 export const appointments = chatBookingSchema.table("appointments", {

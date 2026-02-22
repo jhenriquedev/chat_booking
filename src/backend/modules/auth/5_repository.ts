@@ -2,10 +2,7 @@ import { and, eq, gt } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { operators } from "../operator/schema.js";
-import { tenants } from "../tenant/schema.js";
-import { users } from "../user/schema.js";
-import { refreshTokens } from "./schema.js";
+import { operators, refreshTokens, tenants, users } from "../../shared/schemas/index.js";
 import type { RefreshTokenRow, UserRow } from "./types/models/models.js";
 
 export interface IAuthRepository {
@@ -51,6 +48,7 @@ export function createAuthRepository(container: Container): IAuthRepository {
           .insert(users)
           .values({ name: data.name, phone: data.phone, phoneHash: data.phoneHash, role: "USER" })
           .returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },
@@ -83,6 +81,7 @@ export function createAuthRepository(container: Container): IAuthRepository {
     async createRefreshToken(data: { userId: string; token: string; expiresAt: Date }) {
       return R.fromAsync(async () => {
         const rows = await db.insert(refreshTokens).values(data).returning();
+        if (!rows[0]) throw new Error("Insert não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },

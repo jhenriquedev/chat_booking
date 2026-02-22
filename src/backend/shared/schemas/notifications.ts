@@ -4,9 +4,9 @@ import {
   notificationChannelEnum,
   notificationStatusEnum,
   notificationTypeEnum,
-} from "../../shared/schema.js";
-import { appointments } from "../booking/appointment/schema.js";
-import { users } from "../user/schema.js";
+} from "../schema.js";
+import { appointments } from "./appointments.js";
+import { users } from "./users.js";
 
 /** Notificações enviadas ao usuário sobre seus agendamentos */
 export const notifications = chatBookingSchema.table("notifications", {

@@ -2,9 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Container } from "../../../core/container/container.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
-import { operators } from "../../operator/schema.js";
-import { availabilityRules } from "../availability/schema.js";
-import { scheduleSlots } from "./schema.js";
+import { availabilityRules, operators, scheduleSlots } from "../../../shared/schemas/index.js";
 import type { ScheduleSlotRow } from "./types/models/models.js";
 
 export interface IScheduleRepository {
@@ -87,6 +85,7 @@ export function createScheduleRepository(container: Container): IScheduleReposit
           .set({ status, updatedAt: sql`now()` })
           .where(eq(scheduleSlots.id, id))
           .returning();
+        if (!rows[0]) throw new Error("Update não retornou registro");
         return rows[0];
       }, "DB_QUERY_FAILED");
     },

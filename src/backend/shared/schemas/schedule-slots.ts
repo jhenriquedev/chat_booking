@@ -1,6 +1,6 @@
 import { date, time, timestamp, uuid } from "drizzle-orm/pg-core";
-import { chatBookingSchema, slotStatusEnum } from "../../../shared/schema.js";
-import { operators } from "../../operator/schema.js";
+import { chatBookingSchema, slotStatusEnum } from "../schema.js";
+import { operators } from "./operators.js";
 
 /** Slots concretos da agenda — gerados a partir das availability_rules para datas específicas */
 export const scheduleSlots = chatBookingSchema.table("schedule_slots", {
