@@ -1,0 +1,1 @@
+// apenas definições de enums
