@@ -1,0 +1,18 @@
+{
+  "name": "chat-booking",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "back:install": "npm --prefix src/backend install",
+    "back": "npm --prefix src/backend run",
+    "back:check": "npm --prefix src/backend run check",
+    "back:up": "npm --prefix src/backend run server:up",
+    "back:stop": "npm --prefix src/backend run server:stop",
+    "back:dev": "npm --prefix src/backend run dev",
+    "back:lint": "npm --prefix src/backend run lint",
+    "back:lint:fix": "npm --prefix src/backend run lint:fix",
+    "back:db:generate": "npm --prefix src/backend run db:generate",
+    "back:db:migrate": "npm --prefix src/backend run db:migrate",
+    "back:db:studio": "npm --prefix src/backend run db:studio"
+  }
+}

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "server:up": "docker compose up -d --wait && echo '✓ All services healthy' && npm run db:migrate && tsx watch server.ts",
+    "check": "biome check . && tsc --noEmit",
+    "server:up": "npm run check && echo '✓ Code OK' && docker compose up -d --wait && echo '✓ All services healthy' && npm run db:migrate && echo '✓ Migrations applied' && tsx watch server.ts",
     "server:stop": "docker compose down",
     "dev": "tsx watch server.ts",
     "build": "tsc",
