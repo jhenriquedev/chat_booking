@@ -1,0 +1,53 @@
+# Ambiente e variaveis
+.env
+.env.*
+
+# Dependencias
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Build / artefatos
+dist/
+build/
+out/
+.fresh/
+src/web/_fresh/
+.turbo/
+.cache/
+_fresh
+
+# IDE / SO
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Supabase local
+#supabase
+supabase/.branches
+supabase/.temp
+supabase/.env
+supabase/.snapshots
+
+# Logs
+*.log
+logs/
+logs.*
+log.*
+!log.console.ts
+!log.remote.ts
+
+docs/mocks/*
+
+*.secrets.*
+
+nodejs
+
+sharp-layer.zip
+
+.serverless
+
+legado/n8n/*
+legado/docs/*
