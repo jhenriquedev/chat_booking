@@ -2,15 +2,43 @@ import { serve } from "@hono/node-server";
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { apiReference } from "@scalar/hono-api-reference";
+import { config } from "./core/config/config.js";
+import { registerModules, type Container } from "./core/container/container.js";
+import { db } from "./core/db/connection.js";
+import { errorHandler } from "./core/error/error.handler.js";
+import { loggerMiddleware } from "./core/logger/logger.middleware.js";
+import { sessionGuard } from "./core/session/session.guard.js";
 
 const app = new OpenAPIHono();
 
-// Health check
+// Error handler global
+app.onError(errorHandler);
+
+// Logs em todas as rotas
+app.use("*", loggerMiddleware);
+
+// Health check (público)
 app.get("/health", (c) => {
   return c.json({ status: "ok" });
 });
 
-// TODO: montar módulos de modules/index.ts
+// Auth obrigatória nas rotas de API
+app.use("/api/*", sessionGuard);
+
+// Container de dependências
+const container: Container = { db, config };
+
+// Módulos
+registerModules(app, container, {
+  // "/api/auth": createAuthModule,
+  // "/api/users": createUserModule,
+  // "/api/tenants": createTenantModule,
+  // "/api/businesses": createBusinessModule,
+  // "/api/operators": createOperatorModule,
+  // "/api/services": createServicesModule,
+  // "/api/bookings": createBookingModule,
+  // "/api/notifications": createNotificationModule,
+});
 
 // OpenAPI spec (JSON)
 app.doc("/openapi.json", {
@@ -35,16 +63,14 @@ app.get(
   }),
 );
 
-const port = Number(process.env.PORT) || 3000;
-
-console.log(`Server running on http://localhost:${port}`);
-console.log(`Swagger UI: http://localhost:${port}/swagger`);
-console.log(`Scalar docs: http://localhost:${port}/docs`);
-console.log(`OpenAPI spec: http://localhost:${port}/openapi.json`);
+console.log(`Server running on http://localhost:${config.PORT}`);
+console.log(`Swagger UI: http://localhost:${config.PORT}/swagger`);
+console.log(`Scalar docs: http://localhost:${config.PORT}/docs`);
+console.log(`OpenAPI spec: http://localhost:${config.PORT}/openapi.json`);
 
 serve({
   fetch: app.fetch,
-  port,
+  port: config.PORT,
 });
 
 export default app;

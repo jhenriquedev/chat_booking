@@ -1,12 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { config } from "../config/config.js";
 
-const connectionString = process.env.POSTGRES_URL;
-
-if (!connectionString) {
-  throw new Error("POSTGRES_URL is not set");
-}
-
-const client = postgres(connectionString);
+const client = postgres(config.POSTGRES_URL);
 
 export const db = drizzle({ client });
