@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import type { Container } from "../../../core/container/container.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
@@ -168,7 +168,13 @@ export function createAppointmentRepository(container: Container): IAppointmentR
         }
         if (params.tenantId) {
           conditions.push(
-            sql`${appointments.businessId} IN (SELECT ${businesses.id} FROM ${businesses} WHERE ${businesses.tenantId} = ${params.tenantId})`,
+            inArray(
+              appointments.businessId,
+              db
+                .select({ id: businesses.id })
+                .from(businesses)
+                .where(eq(businesses.tenantId, params.tenantId)),
+            ),
           );
         }
 

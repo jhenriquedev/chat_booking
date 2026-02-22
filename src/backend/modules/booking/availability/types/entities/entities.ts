@@ -32,8 +32,3 @@ export const availabilityRuleEntitySchema = z
 
 /** Entidade AvailabilityRule — horário recorrente semanal do operador */
 export type AvailabilityRuleEntity = z.infer<typeof availabilityRuleEntitySchema>;
-
-/** Valida dados e retorna um AvailabilityRuleEntity */
-export function validateAvailabilityRule(data: unknown): AvailabilityRuleEntity {
-  return availabilityRuleEntitySchema.parse(data);
-}

@@ -1,5 +1,1 @@
-export {
-  type NotificationEntity,
-  notificationEntitySchema,
-  validateNotification,
-} from "./entities/entities.js";
+export { type NotificationEntity, notificationEntitySchema } from "./entities/entities.js";

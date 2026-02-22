@@ -28,14 +28,14 @@ export function createBusinessRepository(container: Container): IBusinessReposit
     async findById(id) {
       return R.fromAsync(async () => {
         const rows = await db.select().from(businesses).where(eq(businesses.id, id)).limit(1);
-        return rows[0] ?? null;
+        return (rows[0] as BusinessRow | undefined) ?? null;
       }, "DB_QUERY_FAILED");
     },
 
     async findBySlug(slug) {
       return R.fromAsync(async () => {
         const rows = await db.select().from(businesses).where(eq(businesses.slug, slug)).limit(1);
-        return rows[0] ?? null;
+        return (rows[0] as BusinessRow | undefined) ?? null;
       }, "DB_QUERY_FAILED");
     },
 
@@ -63,7 +63,7 @@ export function createBusinessRepository(container: Container): IBusinessReposit
           db.select({ total: count() }).from(businesses).where(where),
         ]);
 
-        return { data: rows, total: totalResult[0]?.total ?? 0 };
+        return { data: rows as BusinessRow[], total: totalResult[0]?.total ?? 0 };
       }, "DB_QUERY_FAILED");
     },
 
@@ -88,7 +88,7 @@ export function createBusinessRepository(container: Container): IBusinessReposit
           })
           .returning();
         if (!rows[0]) throw new Error("Insert não retornou registro");
-        return rows[0];
+        return rows[0] as BusinessRow;
       }, "DB_QUERY_FAILED");
     },
 
@@ -100,7 +100,7 @@ export function createBusinessRepository(container: Container): IBusinessReposit
           .where(eq(businesses.id, id))
           .returning();
         if (!rows[0]) throw new Error("Update não retornou registro");
-        return rows[0];
+        return rows[0] as BusinessRow;
       }, "DB_QUERY_FAILED");
     },
 

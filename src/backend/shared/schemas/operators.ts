@@ -1,4 +1,4 @@
-import { boolean, integer, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { chatBookingSchema } from "../schema.js";
 import { businesses } from "./businesses.js";
 import { services } from "./services.js";
@@ -6,48 +6,62 @@ import { tenants } from "./tenants.js";
 import { users } from "./users.js";
 
 /** Operador — profissional vinculado a uma business (barbeiro, esteticista, etc.) */
-export const operators = chatBookingSchema.table("operators", {
-  /** Identificador único (UUID v4) */
-  id: uuid("id").primaryKey().defaultRandom(),
-  /** Usuário vinculado — um user com role OPERATOR */
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id),
-  /** Business onde este operador trabalha */
-  businessId: uuid("business_id")
-    .notNull()
-    .references(() => businesses.id),
-  /** Tenant proprietário — desnormalizado para facilitar queries multi-tenant */
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id),
-  /** Nome de exibição na agenda — pode diferir do nome em users */
-  displayName: varchar("display_name", { length: 255 }).notNull(),
-  /** Permite ao operador editar preço e duração em operator_services. Quando false, apenas o tenant pode alterar */
-  canEditService: boolean("can_edit_service").notNull().default(false),
-  /** Soft delete — false remove o operador da agenda sem excluir histórico */
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const operators = chatBookingSchema.table(
+  "operators",
+  {
+    /** Identificador único (UUID v4) */
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Usuário vinculado — um user com role OPERATOR */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    /** Business onde este operador trabalha */
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id),
+    /** Tenant proprietário — desnormalizado para facilitar queries multi-tenant */
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id),
+    /** Nome de exibição na agenda — pode diferir do nome em users */
+    displayName: varchar("display_name", { length: 255 }).notNull(),
+    /** Permite ao operador editar preço e duração em operator_services. Quando false, apenas o tenant pode alterar */
+    canEditService: boolean("can_edit_service").notNull().default(false),
+    /** Soft delete — false remove o operador da agenda sem excluir histórico */
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_operators_user_id").on(t.userId),
+    index("idx_operators_business_id").on(t.businessId),
+  ],
+);
 
 /** Vínculo operador ↔ serviço com possibilidade de override de preço e duração */
-export const operatorServices = chatBookingSchema.table("operator_services", {
-  /** Identificador único (UUID v4) */
-  id: uuid("id").primaryKey().defaultRandom(),
-  /** Operador vinculado */
-  operatorId: uuid("operator_id")
-    .notNull()
-    .references(() => operators.id),
-  /** Serviço vinculado */
-  serviceId: uuid("service_id")
-    .notNull()
-    .references(() => services.id),
-  /** Override de preço em centavos — null usa o padrão de services.priceCents */
-  priceCents: integer("price_cents"),
-  /** Override de duração em minutos — null usa o padrão de services.durationMinutes */
-  durationMinutes: integer("duration_minutes"),
-  /** Soft delete — false desvincula o serviço do operador */
-  active: boolean("active").notNull().default(true),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const operatorServices = chatBookingSchema.table(
+  "operator_services",
+  {
+    /** Identificador único (UUID v4) */
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Operador vinculado */
+    operatorId: uuid("operator_id")
+      .notNull()
+      .references(() => operators.id),
+    /** Serviço vinculado */
+    serviceId: uuid("service_id")
+      .notNull()
+      .references(() => services.id),
+    /** Override de preço em centavos — null usa o padrão de services.priceCents */
+    priceCents: integer("price_cents"),
+    /** Override de duração em minutos — null usa o padrão de services.durationMinutes */
+    durationMinutes: integer("duration_minutes"),
+    /** Soft delete — false desvincula o serviço do operador */
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_operator_services_operator_id").on(t.operatorId),
+    index("idx_operator_services_service_id").on(t.serviceId),
+  ],
+);

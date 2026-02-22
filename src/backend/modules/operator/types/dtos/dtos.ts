@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { paginationSchema } from "../../../../shared/dtos.js";
 
-export { errorResponseSchema } from "../../../../shared/dtos.js";
+export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
+export { paginationSchema };
 
 // ========== OPERATOR PROFILE (response) ==========
 
@@ -55,14 +57,6 @@ export const listOperatorsQuerySchema = z.object({
 });
 export type ListOperatorsQuery = z.infer<typeof listOperatorsQuerySchema>;
 
-/** Paginação */
-export const paginationSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  total: z.number(),
-  totalPages: z.number(),
-});
-
 /** GET /api/operators — Response Body */
 export const paginatedOperatorsResponseSchema = z.object({
   data: z.array(operatorProfileSchema),
@@ -101,9 +95,3 @@ export const linkServiceRequestSchema = z.object({
     .optional(),
 });
 export type LinkServiceRequest = z.infer<typeof linkServiceRequestSchema>;
-
-// ========== MESSAGE ==========
-
-export const messageResponseSchema = z.object({
-  message: z.string(),
-});

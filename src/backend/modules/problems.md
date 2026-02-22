@@ -59,22 +59,40 @@ Fluxo: insertAppointment → updateSlotStatus(BOOKED) (2 queries separadas, race
 Fluxo: updateStatus(CANCELLED) → releaseSlot (2 queries separadas).
 **Correção:** Novo método `cancelWithSlotRelease` que usa `db.transaction()`.
 
+### 9. Dependências cruzadas entre módulos
+Todos os `5_repository.ts` importavam `schema.ts` de outros módulos, violando a regra de isolamento.
+**Correção:** Schemas centralizados em `shared/schemas/` (10 tabelas + `index.ts`). Todos os repositories agora importam de `shared/schemas/index.js`. Os 10 `schema.ts` antigos dos módulos foram deletados. `drizzle.config.ts` atualizado.
+
+### 10. `getSession()` usava cast inseguro
+**Arquivo:** `core/session/session.guard.ts`
+`c.get("jwtPayload") as SessionPayload` não validava o payload em runtime. Campos faltando causavam erros silenciosos em locais distantes.
+**Correção:** Schema Zod `sessionPayloadSchema` valida o payload. Se inválido, retorna HTTP 401.
+
+### 11. Sem rate limiting
+**Arquivo:** `core/rate-limit/rate-limit.middleware.ts` (novo) + `server.ts`
+Nenhum endpoint tinha rate limiting. Endpoints públicos eram alvos de brute force.
+**Correção:** Middleware in-memory com fixed window. Login: 5 req/min, refresh: 10 req/min, owner: 3 req/min. Headers `X-RateLimit-*` incluídos.
+
+### 12. `ADMIN_API_KEY` com mínimo fraco
+**Arquivo:** `core/config/config.ts`
+Mínimo de 16 chars era insuficiente para uma chave que protege criação de owners.
+**Correção:** Mínimo alterado para 32 caracteres.
+
+### 13. Timezone local na geração de slots
+**Arquivo:** `booking/schedule/4_service.ts`
+`new Date(year, month-1, day)` criava datas no timezone local do servidor. Se não fosse UTC, `getDay()` retornava dia errado e `getDateRange()` podia pular/repetir datas.
+**Correção:** `Date.UTC()` + métodos `getUTC*()` em `getDayOfWeek()` e `getDateRange()`.
+
 ---
 
 ## Problemas pendentes (não corrigidos)
 
 ### Segurança
-- **getSession() usa cast inseguro** — `c.get("jwtPayload") as SessionPayload` não valida o payload em runtime. Se o JWT contiver campos inesperados, pode causar erros silenciosos. (`session.guard.ts`)
-- **ADMIN_API_KEY com mínimo de 16 chars** — Para uma chave administrativa que gerencia owners, considerar mínimo de 32+ caracteres. (`config.ts`)
 - **Phone armazenado em texto plano** — O campo `phone` em users guarda o número em plaintext. O hash serve para lookup, mas o plaintext poderia ser criptografado. (`user/schema.ts`)
-- **Sem rate limiting** — Nenhum middleware de rate limit. Endpoints públicos como `/api/auth/login` e `/api/businesses/slug/*` são alvos de brute force.
 
 ### Tipagem
 - **businessHours e socialLinks tipados como unknown** — O model `BusinessRow` define esses campos como `unknown`, e o service faz cast inseguro com `as` no `toProfile()`. (`business/4_service.ts`)
 - **biome-ignore lint/suspicious/noExplicitAny em todos os handlers** — 20+ ocorrências. O tipo de retorno `Promise<any>` é necessário pela incompatibilidade com zod-openapi.
-
-### Timezone
-- **Schedule: geração de slots sem tratamento de timezone** — `new Date(year, month-1, day)` cria datas no timezone local do servidor. Se o server rodar em timezone diferente de UTC, pode gerar slots no dia errado. (`booking/schedule/4_service.ts`)
 
 ### Performance
 - **Falta de índices** — Nenhum índice explícito além de PKs e unique constraints. Queries frequentes em `appointments.operatorId`, `appointments.businessId`, `appointments.userId`, `schedule_slots.operatorId + date`, `notifications.userId` se beneficiariam de índices.

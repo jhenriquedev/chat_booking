@@ -23,11 +23,6 @@ export const operatorEntitySchema = z.object({
 /** Entidade Operator — objeto de valor validado */
 export type OperatorEntity = z.infer<typeof operatorEntitySchema>;
 
-/** Valida dados e retorna um OperatorEntity */
-export function validateOperator(data: unknown): OperatorEntity {
-  return operatorEntitySchema.parse(data);
-}
-
 /** Schema de validação do OperatorService */
 export const operatorServiceEntitySchema = z.object({
   /** UUID v4 */
@@ -47,8 +42,3 @@ export const operatorServiceEntitySchema = z.object({
 
 /** Entidade OperatorService — vínculo operador ↔ serviço com override opcional */
 export type OperatorServiceEntity = z.infer<typeof operatorServiceEntitySchema>;
-
-/** Valida dados e retorna um OperatorServiceEntity */
-export function validateOperatorService(data: unknown): OperatorServiceEntity {
-  return operatorServiceEntitySchema.parse(data);
-}

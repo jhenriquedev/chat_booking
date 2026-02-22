@@ -2,7 +2,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import type { Config } from "../../core/config/config.js";
 import { respondError } from "../../core/error/error.handler.js";
-import { type Role, getSession } from "../../core/session/session.guard.js";
+import { getSession, hasRole } from "../../core/session/session.guard.js";
 import {
   createOwnerRoute,
   deleteUserRoute,
@@ -17,11 +17,6 @@ import type { IUserService } from "./4_service.js";
 
 export interface IUserHandler {
   register(app: OpenAPIHono): void;
-}
-
-/** Verifica se o role do usuário está na lista de permitidos */
-function hasRole(session: { role: Role }, ...allowed: Role[]): boolean {
-  return allowed.includes(session.role);
 }
 
 /** Valida a admin key do header X-Admin-Key */

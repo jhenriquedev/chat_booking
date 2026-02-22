@@ -1,13 +1,5 @@
 import { z } from "zod";
-
-/** Tipos de notificação */
-const notificationTypes = ["CONFIRMATION", "REMINDER", "CANCELLATION", "RESCHEDULE"] as const;
-
-/** Canais de envio */
-const notificationChannels = ["WHATSAPP", "SMS", "EMAIL"] as const;
-
-/** Status de envio */
-const notificationStatuses = ["PENDING", "SENT", "FAILED"] as const;
+import { notificationChannels, notificationStatuses, notificationTypes } from "../enums/enums.js";
 
 /** Schema de validação da Notification */
 export const notificationEntitySchema = z.object({
@@ -32,8 +24,3 @@ export const notificationEntitySchema = z.object({
 
 /** Entidade Notification — notificação enviada ao usuário */
 export type NotificationEntity = z.infer<typeof notificationEntitySchema>;
-
-/** Valida dados e retorna um NotificationEntity */
-export function validateNotification(data: unknown): NotificationEntity {
-  return notificationEntitySchema.parse(data);
-}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export { errorResponseSchema } from "../../../../../shared/dtos.js";
+export { errorResponseSchema, messageResponseSchema } from "../../../../../shared/dtos.js";
 
 /** Regex para validar formato HH:MM */
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -80,9 +80,3 @@ export const listAvailabilityRulesQuerySchema = z.object({
     .optional(),
 });
 export type ListAvailabilityRulesQuery = z.infer<typeof listAvailabilityRulesQuerySchema>;
-
-// ========== MESSAGE ==========
-
-export const messageResponseSchema = z.object({
-  message: z.string(),
-});

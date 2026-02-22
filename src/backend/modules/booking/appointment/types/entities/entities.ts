@@ -35,8 +35,3 @@ export const appointmentEntitySchema = z.object({
 
 /** Entidade Appointment — registro de um atendimento */
 export type AppointmentEntity = z.infer<typeof appointmentEntitySchema>;
-
-/** Valida dados e retorna um AppointmentEntity */
-export function validateAppointment(data: unknown): AppointmentEntity {
-  return appointmentEntitySchema.parse(data);
-}

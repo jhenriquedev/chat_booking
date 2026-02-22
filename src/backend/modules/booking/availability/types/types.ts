@@ -1,5 +1,1 @@
-export {
-  type AvailabilityRuleEntity,
-  availabilityRuleEntitySchema,
-  validateAvailabilityRule,
-} from "./entities/entities.js";
+export { type AvailabilityRuleEntity, availabilityRuleEntitySchema } from "./entities/entities.js";

@@ -1,6 +1,6 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { respondError } from "../../../core/error/error.handler.js";
-import { type Role, getSession } from "../../../core/session/session.guard.js";
+import { getSession, hasRole } from "../../../core/session/session.guard.js";
 import {
   cancelAppointmentRoute,
   completeAppointmentRoute,
@@ -13,10 +13,6 @@ import type { IAppointmentService } from "./4_service.js";
 
 export interface IAppointmentHandler {
   register(app: OpenAPIHono): void;
-}
-
-function hasRole(session: { role: Role }, ...allowed: Role[]): boolean {
-  return allowed.includes(session.role);
 }
 
 export function createAppointmentHandler(service: IAppointmentService): IAppointmentHandler {

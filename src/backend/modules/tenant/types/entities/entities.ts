@@ -14,8 +14,3 @@ export const tenantEntitySchema = z.object({
 
 /** Entidade Tenant — objeto de valor validado */
 export type TenantEntity = z.infer<typeof tenantEntitySchema>;
-
-/** Valida dados e retorna um TenantEntity */
-export function validateTenant(data: unknown): TenantEntity {
-  return tenantEntitySchema.parse(data);
-}

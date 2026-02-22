@@ -1,5 +1,1 @@
-export {
-  type ScheduleSlotEntity,
-  scheduleSlotEntitySchema,
-  validateScheduleSlot,
-} from "./entities/entities.js";
+export { type ScheduleSlotEntity, scheduleSlotEntitySchema } from "./entities/entities.js";

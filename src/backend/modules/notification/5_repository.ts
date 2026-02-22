@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
@@ -93,12 +93,25 @@ export function createNotificationRepository(container: Container): INotificatio
         }
         if (params.operatorId) {
           conditions.push(
-            sql`${notifications.appointmentId} IN (SELECT ${appointments.id} FROM ${appointments} WHERE ${appointments.operatorId} = ${params.operatorId})`,
+            inArray(
+              notifications.appointmentId,
+              db
+                .select({ id: appointments.id })
+                .from(appointments)
+                .where(eq(appointments.operatorId, params.operatorId)),
+            ),
           );
         }
         if (params.tenantId) {
           conditions.push(
-            sql`${notifications.appointmentId} IN (SELECT ${appointments.id} FROM ${appointments} WHERE ${appointments.businessId} IN (SELECT ${businesses.id} FROM ${businesses} WHERE ${businesses.tenantId} = ${params.tenantId}))`,
+            inArray(
+              notifications.appointmentId,
+              db
+                .select({ id: appointments.id })
+                .from(appointments)
+                .innerJoin(businesses, eq(appointments.businessId, businesses.id))
+                .where(eq(businesses.tenantId, params.tenantId)),
+            ),
           );
         }
 

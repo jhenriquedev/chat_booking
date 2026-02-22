@@ -31,8 +31,3 @@ export const scheduleSlotEntitySchema = z
 
 /** Entidade ScheduleSlot — slot concreto na agenda do operador */
 export type ScheduleSlotEntity = z.infer<typeof scheduleSlotEntitySchema>;
-
-/** Valida dados e retorna um ScheduleSlotEntity */
-export function validateScheduleSlot(data: unknown): ScheduleSlotEntity {
-  return scheduleSlotEntitySchema.parse(data);
-}

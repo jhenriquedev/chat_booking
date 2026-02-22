@@ -1,10 +1,9 @@
 import { z } from "zod";
+import { paginationSchema } from "../../../../shared/dtos.js";
+import { notificationChannels, notificationStatuses, notificationTypes } from "../enums/enums.js";
 
-export { errorResponseSchema } from "../../../../shared/dtos.js";
-
-const notificationTypes = ["CONFIRMATION", "REMINDER", "CANCELLATION", "RESCHEDULE"] as const;
-const notificationChannels = ["WHATSAPP", "SMS", "EMAIL"] as const;
-const notificationStatuses = ["PENDING", "SENT", "FAILED"] as const;
+export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
+export { paginationSchema };
 
 // ========== NOTIFICATION PROFILE (response) ==========
 
@@ -44,13 +43,6 @@ export const listNotificationsQuerySchema = z.object({
 export type ListNotificationsQuery = z.infer<typeof listNotificationsQuerySchema>;
 
 // ========== PAGINATION ==========
-
-export const paginationSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  total: z.number(),
-  totalPages: z.number(),
-});
 
 export const paginatedNotificationsResponseSchema = z.object({
   data: z.array(notificationProfileSchema),

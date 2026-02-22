@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export { errorResponseSchema } from "../../../../../shared/dtos.js";
+export { errorResponseSchema, messageResponseSchema } from "../../../../../shared/dtos.js";
 
 /** Regex para validar formato YYYY-MM-DD */
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -66,9 +66,3 @@ export const updateSlotStatusRequestSchema = z.object({
   }),
 });
 export type UpdateSlotStatusRequest = z.infer<typeof updateSlotStatusRequestSchema>;
-
-// ========== MESSAGE ==========
-
-export const messageResponseSchema = z.object({
-  message: z.string(),
-});

@@ -12,6 +12,7 @@ export { Result, type AppError } from "./result/result.js";
 export {
   sessionGuard,
   getSession,
+  hasRole,
   requireRole,
   Roles,
   type Role,

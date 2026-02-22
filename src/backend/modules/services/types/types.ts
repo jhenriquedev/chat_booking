@@ -1,1 +1,1 @@
-export { type ServiceEntity, serviceEntitySchema, validateService } from "./entities/entities.js";
+export { type ServiceEntity, serviceEntitySchema } from "./entities/entities.js";

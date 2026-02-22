@@ -1,4 +1,4 @@
-export { type TenantEntity, tenantEntitySchema, validateTenant } from "./entities/entities.js";
+export { type TenantEntity, tenantEntitySchema } from "./entities/entities.js";
 export type { TenantRow, TenantWithUserRow } from "./models/models.js";
 export type {
   TenantProfile,

@@ -69,8 +69,3 @@ export const businessEntitySchema = z.object({
 
 /** Entidade Business — objeto de valor validado */
 export type BusinessEntity = z.infer<typeof businessEntitySchema>;
-
-/** Valida dados e retorna um BusinessEntity */
-export function validateBusiness(data: unknown): BusinessEntity {
-  return businessEntitySchema.parse(data);
-}

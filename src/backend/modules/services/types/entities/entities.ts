@@ -22,8 +22,3 @@ export const serviceEntitySchema = z.object({
 
 /** Entidade Service — objeto de valor validado */
 export type ServiceEntity = z.infer<typeof serviceEntitySchema>;
-
-/** Valida dados e retorna um ServiceEntity */
-export function validateService(data: unknown): ServiceEntity {
-  return serviceEntitySchema.parse(data);
-}

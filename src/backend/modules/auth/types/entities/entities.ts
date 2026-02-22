@@ -15,8 +15,3 @@ export const refreshTokenEntitySchema = z.object({
 
 /** Entidade RefreshToken — objeto de valor validado */
 export type RefreshTokenEntity = z.infer<typeof refreshTokenEntitySchema>;
-
-/** Valida dados e retorna um RefreshTokenEntity */
-export function validateRefreshToken(data: unknown): RefreshTokenEntity {
-  return refreshTokenEntitySchema.parse(data);
-}

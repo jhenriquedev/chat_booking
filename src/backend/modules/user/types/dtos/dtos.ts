@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { paginationSchema } from "../../../../shared/dtos.js";
 
-export { errorResponseSchema } from "../../../../shared/dtos.js";
+export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
+export { paginationSchema };
 
 const userRoles = ["USER", "OPERATOR", "TENANT", "OWNER"] as const;
 
@@ -54,14 +56,6 @@ export const listUsersQuerySchema = z.object({
 });
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
 
-/** Paginação */
-export const paginationSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  total: z.number(),
-  totalPages: z.number(),
-});
-
 /** GET /api/users — Response Body */
 export const paginatedUsersResponseSchema = z.object({
   data: z.array(userProfileSchema),
@@ -89,10 +83,3 @@ export const updateOwnerRequestSchema = z.object({
   active: z.boolean().optional(),
 });
 export type UpdateOwnerRequest = z.infer<typeof updateOwnerRequestSchema>;
-
-// ========== MESSAGE ==========
-
-/** Resposta genérica de mensagem */
-export const messageResponseSchema = z.object({
-  message: z.string(),
-});

@@ -1,8 +1,4 @@
-export {
-  type RefreshTokenEntity,
-  refreshTokenEntitySchema,
-  validateRefreshToken,
-} from "./entities/entities.js";
+export { type RefreshTokenEntity, refreshTokenEntitySchema } from "./entities/entities.js";
 
 export {
   loginRequestSchema,

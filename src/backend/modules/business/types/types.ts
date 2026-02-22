@@ -1,5 +1,1 @@
-export {
-  type BusinessEntity,
-  businessEntitySchema,
-  validateBusiness,
-} from "./entities/entities.js";
+export { type BusinessEntity, businessEntitySchema } from "./entities/entities.js";

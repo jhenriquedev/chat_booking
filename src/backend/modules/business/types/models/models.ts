@@ -1,3 +1,6 @@
+import type { z } from "zod";
+import type { businessHoursSchema, socialLinksSchema } from "../entities/entities.js";
+
 /** Row do businesses retornada pelo Drizzle */
 export type BusinessRow = {
   id: string;
@@ -12,8 +15,8 @@ export type BusinessRow = {
   description: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
-  businessHours: unknown;
-  socialLinks: unknown;
+  businessHours: z.infer<typeof businessHoursSchema>;
+  socialLinks: z.infer<typeof socialLinksSchema>;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

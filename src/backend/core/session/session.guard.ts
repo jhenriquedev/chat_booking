@@ -1,6 +1,8 @@
 import type { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
 import { jwt } from "hono/jwt";
+import { z } from "zod";
 import { config } from "../config/config.js";
 
 export const Roles = {
@@ -12,12 +14,14 @@ export const Roles = {
 
 export type Role = (typeof Roles)[keyof typeof Roles];
 
-export type SessionPayload = {
-  sub: string;
-  role: Role;
-  tenantId: string | null;
-  businessId: string | null;
-};
+const sessionPayloadSchema = z.object({
+  sub: z.string(),
+  role: z.enum(["OWNER", "TENANT", "OPERATOR", "USER"]),
+  tenantId: z.string().nullable(),
+  businessId: z.string().nullable(),
+});
+
+export type SessionPayload = z.infer<typeof sessionPayloadSchema>;
 
 /**
  * Middleware de autenticação JWT.
@@ -43,8 +47,18 @@ export const sessionGuard = jwt({
  * ```
  */
 export const getSession = (c: Context): SessionPayload => {
-  return c.get("jwtPayload") as SessionPayload;
+  const raw = c.get("jwtPayload");
+  const parsed = sessionPayloadSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new HTTPException(401, { message: "Token inválido: payload malformado" });
+  }
+  return parsed.data;
 };
+
+/** Verifica se a sessão possui uma das roles permitidas */
+export function hasRole(session: { role: Role }, ...allowed: Role[]): boolean {
+  return allowed.includes(session.role);
+}
 
 /**
  * Middleware de autorização por role.

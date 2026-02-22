@@ -57,27 +57,27 @@ function addMinutes(time: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-/** Retorna o dayOfWeek (0=dom, 6=sab) de uma data YYYY-MM-DD */
+/** Retorna o dayOfWeek (0=dom, 6=sab) de uma data YYYY-MM-DD em UTC */
 function getDayOfWeek(dateStr: string): number {
   const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day).getDay();
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 }
 
-/** Retorna array de datas YYYY-MM-DD entre dateFrom e dateTo (inclusive) */
+/** Retorna array de datas YYYY-MM-DD entre dateFrom e dateTo (inclusive) em UTC */
 function getDateRange(dateFrom: string, dateTo: string): string[] {
   const dates: string[] = [];
-  const [startYear, startMonth, startDay] = dateFrom.split("-").map(Number);
-  const start = new Date(startYear, startMonth - 1, startDay);
-  const [endYear, endMonth, endDay] = dateTo.split("-").map(Number);
-  const end = new Date(endYear, endMonth - 1, endDay);
+  const [sy, sm, sd] = dateFrom.split("-").map(Number);
+  const start = new Date(Date.UTC(sy, sm - 1, sd));
+  const [ey, em, ed] = dateTo.split("-").map(Number);
+  const end = new Date(Date.UTC(ey, em - 1, ed));
 
   const cursor = new Date(start);
   while (cursor <= end) {
-    const y = cursor.getFullYear();
-    const mo = String(cursor.getMonth() + 1).padStart(2, "0");
-    const d = String(cursor.getDate()).padStart(2, "0");
+    const y = cursor.getUTCFullYear();
+    const mo = String(cursor.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(cursor.getUTCDate()).padStart(2, "0");
     dates.push(`${y}-${mo}-${d}`);
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
   return dates;

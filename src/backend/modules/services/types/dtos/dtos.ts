@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { paginationSchema } from "../../../../shared/dtos.js";
 
-export { errorResponseSchema } from "../../../../shared/dtos.js";
+export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
+export { paginationSchema };
 
 // ========== SERVICE PROFILE (response) ==========
 
@@ -70,23 +72,9 @@ export const listServicesQuerySchema = z.object({
 });
 export type ListServicesQuery = z.infer<typeof listServicesQuerySchema>;
 
-/** Paginação */
-export const paginationSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  total: z.number(),
-  totalPages: z.number(),
-});
-
 /** GET /api/services — Response Body */
 export const paginatedServicesResponseSchema = z.object({
   data: z.array(serviceProfileSchema),
   pagination: paginationSchema,
 });
 export type PaginatedServicesResponse = z.infer<typeof paginatedServicesResponseSchema>;
-
-// ========== MESSAGE ==========
-
-export const messageResponseSchema = z.object({
-  message: z.string(),
-});

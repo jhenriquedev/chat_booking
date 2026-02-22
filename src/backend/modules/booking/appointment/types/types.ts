@@ -1,5 +1,1 @@
-export {
-  type AppointmentEntity,
-  appointmentEntitySchema,
-  validateAppointment,
-} from "./entities/entities.js";
+export { type AppointmentEntity, appointmentEntitySchema } from "./entities/entities.js";

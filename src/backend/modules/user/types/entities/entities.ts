@@ -25,8 +25,3 @@ export const userEntitySchema = z.object({
 
 /** Entidade User — objeto de valor validado */
 export type UserEntity = z.infer<typeof userEntitySchema>;
-
-/** Valida dados e retorna um UserEntity */
-export function validateUser(data: unknown): UserEntity {
-  return userEntitySchema.parse(data);
-}

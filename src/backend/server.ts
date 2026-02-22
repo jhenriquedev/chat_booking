@@ -7,6 +7,7 @@ import { type Container, registerModules } from "./core/container/container.js";
 import { db } from "./core/db/connection.js";
 import { errorHandler } from "./core/error/error.handler.js";
 import { loggerMiddleware } from "./core/logger/logger.middleware.js";
+import { rateLimiter } from "./core/rate-limit/rate-limit.middleware.js";
 import { sessionGuard } from "./core/session/session.guard.js";
 import { createAuthModule } from "./modules/auth/1_module.js";
 import { createAppointmentFeature } from "./modules/booking/appointment/1_feature.js";
@@ -26,6 +27,11 @@ app.onError(errorHandler);
 
 // Logs em todas as rotas
 app.use("*", loggerMiddleware);
+
+// Rate limiting em endpoints públicos (antes do auth)
+app.use("/api/auth/login", rateLimiter({ windowMs: 60_000, maxRequests: 5 }));
+app.use("/api/auth/refresh", rateLimiter({ windowMs: 60_000, maxRequests: 10 }));
+app.use("/api/users/owner/*", rateLimiter({ windowMs: 60_000, maxRequests: 3 }));
 
 // Health check (público)
 app.get("/health", (c) => {

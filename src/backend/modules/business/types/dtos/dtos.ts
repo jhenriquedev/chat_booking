@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { paginationSchema } from "../../../../shared/dtos.js";
 import { businessHoursSchema, socialLinksSchema } from "../entities/entities.js";
 
-export { errorResponseSchema } from "../../../../shared/dtos.js";
+export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
+export { paginationSchema };
 
 // ========== BUSINESS PROFILE (response) ==========
 
@@ -97,23 +99,9 @@ export const listBusinessesQuerySchema = z.object({
 });
 export type ListBusinessesQuery = z.infer<typeof listBusinessesQuerySchema>;
 
-/** Paginação */
-export const paginationSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  total: z.number(),
-  totalPages: z.number(),
-});
-
 /** GET /api/businesses — Response Body */
 export const paginatedBusinessesResponseSchema = z.object({
   data: z.array(businessProfileSchema),
   pagination: paginationSchema,
 });
 export type PaginatedBusinessesResponse = z.infer<typeof paginatedBusinessesResponseSchema>;
-
-// ========== MESSAGE ==========
-
-export const messageResponseSchema = z.object({
-  message: z.string(),
-});
