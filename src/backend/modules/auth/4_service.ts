@@ -166,7 +166,11 @@ export function createAuthService(container: Container, repository: IAuthReposit
       });
       if (storeResult.isErr()) return R.fail(storeResult.error);
 
-      return R.ok({ accessToken, refreshToken: newRawRefreshToken, expiresIn: config.ACCESS_TOKEN_EXPIRES_IN });
+      return R.ok({
+        accessToken,
+        refreshToken: newRawRefreshToken,
+        expiresIn: config.ACCESS_TOKEN_EXPIRES_IN,
+      });
     },
 
     /** Logout: invalida todos os refresh tokens do usuário */

@@ -9,6 +9,8 @@ import { errorHandler } from "./core/error/error.handler.js";
 import { loggerMiddleware } from "./core/logger/logger.middleware.js";
 import { sessionGuard } from "./core/session/session.guard.js";
 import { createAuthModule } from "./modules/auth/1_module.js";
+import { createTenantModule } from "./modules/tenant/1_module.js";
+import { createUserModule } from "./modules/user/1_module.js";
 
 const app = new OpenAPIHono();
 
@@ -25,10 +27,12 @@ app.get("/health", (c) => {
 
 // Paths públicos (não exigem JWT)
 const publicPaths = ["/api/auth/login", "/api/auth/refresh"];
+const publicPrefixes = ["/api/users/owner"];
 
 // Auth obrigatória nas rotas de API (exceto paths públicos)
 app.use("/api/*", async (c, next) => {
   if (publicPaths.includes(c.req.path)) return next();
+  if (publicPrefixes.some((p) => c.req.path.startsWith(p))) return next();
   return sessionGuard(c, next);
 });
 
@@ -38,8 +42,8 @@ const container: Container = { db, config };
 // Módulos
 registerModules(app, container, {
   "/api/auth": createAuthModule,
-  // "/api/users": createUserModule,
-  // "/api/tenants": createTenantModule,
+  "/api/users": createUserModule,
+  "/api/tenants": createTenantModule,
   // "/api/businesses": createBusinessModule,
   // "/api/operators": createOperatorModule,
   // "/api/services": createServicesModule,
@@ -47,12 +51,19 @@ registerModules(app, container, {
   // "/api/notifications": createNotificationModule,
 });
 
-// Security scheme para rotas protegidas
+// Security schemes para rotas protegidas
 app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
   type: "http",
   scheme: "bearer",
   bearerFormat: "JWT",
   description: "Access token JWT (HS256)",
+});
+
+app.openAPIRegistry.registerComponent("securitySchemes", "AdminKey", {
+  type: "apiKey",
+  in: "header",
+  name: "X-Admin-Key",
+  description: "Chave administrativa para gerenciamento de owners",
 });
 
 // OpenAPI spec (JSON)

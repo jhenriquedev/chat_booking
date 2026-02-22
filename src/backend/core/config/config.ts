@@ -18,6 +18,7 @@ const envSchema = z.object({
 
   // Auth
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
+  ADMIN_API_KEY: z.string().min(16, "ADMIN_API_KEY must be at least 16 characters"),
   ACCESS_TOKEN_EXPIRES_IN: z.coerce.number().default(3600), // 1 hora
   REFRESH_TOKEN_EXPIRES_IN: z.coerce.number().default(86400), // 24 horas
 });
