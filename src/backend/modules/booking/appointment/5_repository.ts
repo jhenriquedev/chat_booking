@@ -192,7 +192,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
           db.select({ total: count() }).from(appointments).where(where),
         ]);
 
-        return { data, total: countResult[0].total };
+        return { data, total: countResult[0]?.total ?? 0 };
       }, "DB_QUERY_FAILED");
     },
 
@@ -287,7 +287,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
             tenantId: operators.tenantId,
           })
           .from(operators)
-          .where(eq(operators.userId, userId))
+          .where(and(eq(operators.userId, userId), eq(operators.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
@@ -346,8 +346,8 @@ export function createAppointmentRepository(container: Container): IAppointmentR
     },
 
     async createWithSlotBooking(data, slotId) {
-      return R.fromAsync(async () => {
-        return db.transaction(async (tx) => {
+      try {
+        const row = await db.transaction(async (tx) => {
           // Atualiza slot para BOOKED apenas se ainda estiver AVAILABLE (lock otimista)
           const slotUpdate = await tx
             .update(scheduleSlots)
@@ -356,7 +356,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
             .returning({ id: scheduleSlots.id });
 
           if (slotUpdate.length === 0) {
-            throw new Error("Slot não está disponível");
+            return null; // Slot não está mais disponível
           }
 
           // Cria o appointment
@@ -377,7 +377,17 @@ export function createAppointmentRepository(container: Container): IAppointmentR
 
           return rows[0];
         });
-      }, "DB_QUERY_FAILED");
+
+        if (!row) {
+          return R.fail({ code: "CONFLICT", message: "Slot não está disponível" });
+        }
+        return R.ok(row);
+      } catch (err) {
+        return R.fail({
+          code: "DB_QUERY_FAILED",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
     },
 
     async cancelWithSlotRelease(id, extra, operatorId, date, startTime) {

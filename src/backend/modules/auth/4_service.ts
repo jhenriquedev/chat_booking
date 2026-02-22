@@ -13,6 +13,13 @@ export interface IAuthService {
   logout(userId: string): Promise<Result<{ message: string }>>;
 }
 
+const VALID_ROLES = new Set<string>(["USER", "OPERATOR", "TENANT", "OWNER"]);
+
+/** Valida que o role do DB é um Role válido */
+function parseRole(role: string): Role | null {
+  return VALID_ROLES.has(role) ? (role as Role) : null;
+}
+
 export function createAuthService(container: Container, repository: IAuthRepository): IAuthService {
   const { config } = container;
 
@@ -85,14 +92,20 @@ export function createAuthService(container: Container, repository: IAuthReposit
         return R.fail({ code: "UNAUTHORIZED", message: "Conta de usuário inativa" });
       }
 
-      // 4. Monta payload do JWT (com lookup de tenantId/businessId)
-      const payloadResult = await buildSessionPayload(user.id, user.role as Role);
+      // 4. Valida role do DB
+      const role = parseRole(user.role);
+      if (!role) {
+        return R.fail({ code: "UNAUTHORIZED", message: "Role de usuário inválido" });
+      }
+
+      // 5. Monta payload do JWT (com lookup de tenantId/businessId)
+      const payloadResult = await buildSessionPayload(user.id, role);
       if (payloadResult.isErr()) return R.fail(payloadResult.error);
 
-      // 5. Gera access token
+      // 6. Gera access token
       const accessToken = await signAccessToken(payloadResult.value);
 
-      // 6. Gera refresh token, hash, armazena no DB
+      // 7. Gera refresh token, hash, armazena no DB
       const rawRefreshToken = generateRefreshToken();
       const refreshTokenHash = hashToken(rawRefreshToken);
       const expiresAt = new Date(Date.now() + config.REFRESH_TOKEN_EXPIRES_IN * 1000);
@@ -112,7 +125,7 @@ export function createAuthService(container: Container, repository: IAuthReposit
           id: user.id,
           name: user.name,
           phone: user.phone,
-          role: user.role as LoginResponse["user"]["role"],
+          role,
           active: user.active,
         },
       });
@@ -147,8 +160,12 @@ export function createAuthService(container: Container, repository: IAuthReposit
       const deleteResult = await repository.deleteRefreshTokenById(existingToken.id);
       if (deleteResult.isErr()) return R.fail(deleteResult.error);
 
-      // 5. Novo payload
-      const payloadResult = await buildSessionPayload(user.id, user.role as Role);
+      // 5. Valida role e monta novo payload
+      const role = parseRole(user.role);
+      if (!role) {
+        return R.fail({ code: "UNAUTHORIZED", message: "Role de usuário inválido" });
+      }
+      const payloadResult = await buildSessionPayload(user.id, role);
       if (payloadResult.isErr()) return R.fail(payloadResult.error);
 
       // 6. Novo access token

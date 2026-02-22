@@ -7,6 +7,7 @@ import {
   operatorServices,
   operators,
   services,
+  tenants,
   users,
 } from "../../shared/schemas/index.js";
 import type { OperatorRow, OperatorServiceRow } from "./types/models/models.js";
@@ -23,7 +24,12 @@ export interface IOperatorRepository {
   create(
     data: Omit<OperatorRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<OperatorRow>>;
-  update(id: string, data: Partial<OperatorRow>): Promise<Result<OperatorRow>>;
+  update(
+    id: string,
+    data: Partial<
+      Omit<OperatorRow, "id" | "userId" | "businessId" | "tenantId" | "createdAt" | "updatedAt">
+    >,
+  ): Promise<Result<OperatorRow>>;
   softDelete(id: string): Promise<Result<void>>;
   findUserById(userId: string): Promise<Result<{ id: string; role: string } | null>>;
   updateUserRole(userId: string, role: string): Promise<Result<void>>;
@@ -40,7 +46,8 @@ export interface IOperatorRepository {
   createWithRolePromotion(
     data: Omit<OperatorRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<OperatorRow>>;
-  softDeleteWithRoleRevert(id: string, userId: string): Promise<Result<void>>;
+  findTenantByUserId(userId: string): Promise<Result<{ id: string } | null>>;
+  softDeleteWithRoleRevert(id: string, userId: string, previousRole: string): Promise<Result<void>>;
 }
 
 export function createOperatorRepository(container: Container): IOperatorRepository {
@@ -49,7 +56,11 @@ export function createOperatorRepository(container: Container): IOperatorReposit
   return {
     async findById(id) {
       return R.fromAsync(async () => {
-        const rows = await db.select().from(operators).where(eq(operators.id, id)).limit(1);
+        const rows = await db
+          .select()
+          .from(operators)
+          .where(and(eq(operators.id, id), eq(operators.active, true)))
+          .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
     },
@@ -243,7 +254,18 @@ export function createOperatorRepository(container: Container): IOperatorReposit
       }, "DB_QUERY_FAILED");
     },
 
-    async softDeleteWithRoleRevert(id, userId) {
+    async findTenantByUserId(userId) {
+      return R.fromAsync(async () => {
+        const rows = await db
+          .select({ id: tenants.id })
+          .from(tenants)
+          .where(eq(tenants.userId, userId))
+          .limit(1);
+        return rows[0] ?? null;
+      }, "DB_QUERY_FAILED");
+    },
+
+    async softDeleteWithRoleRevert(id, userId, previousRole) {
       return R.fromAsync(async () => {
         await db.transaction(async (tx) => {
           await tx
@@ -253,7 +275,10 @@ export function createOperatorRepository(container: Container): IOperatorReposit
 
           await tx
             .update(users)
-            .set({ role: "USER" as const, updatedAt: sql`now()` })
+            .set({
+              role: previousRole as "USER" | "OPERATOR" | "TENANT" | "OWNER",
+              updatedAt: sql`now()`,
+            })
             .where(eq(users.id, userId));
         });
       }, "DB_QUERY_FAILED");

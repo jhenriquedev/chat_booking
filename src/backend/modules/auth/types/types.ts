@@ -18,8 +18,4 @@ export {
 
 export { AuthErrorCode } from "./enums/enums.js";
 
-export {
-  type RefreshTokenRow,
-  type UserRow,
-  toRefreshTokenEntity,
-} from "./models/models.js";
+export type { RefreshTokenRow, UserRow } from "./models/models.js";

@@ -121,6 +121,15 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
       const accessCheck = await checkOperatorAccess(input.operatorId, callerRole, callerTenantId);
       if (accessCheck.isErr()) return R.fail(accessCheck.error);
 
+      // Valida que dateFrom não é no passado
+      const today = new Date().toISOString().split("T")[0];
+      if (input.dateFrom < today) {
+        return R.fail({
+          code: "VALIDATION_ERROR",
+          message: "Data de início não pode ser no passado",
+        });
+      }
+
       // Valida range máximo de 31 dias
       const dates = getDateRange(input.dateFrom, input.dateTo);
       if (dates.length > 31) {

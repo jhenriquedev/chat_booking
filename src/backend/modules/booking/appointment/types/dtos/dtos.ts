@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { paginationSchema } from "../../../../../shared/dtos.js";
 
 export { errorResponseSchema } from "../../../../../shared/dtos.js";
+export { paginationSchema };
 
 const appointmentStatuses = ["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "NO_SHOW"] as const;
 
@@ -51,14 +53,6 @@ export const listAppointmentsQuerySchema = z.object({
   businessId: z.string().uuid().optional(),
 });
 export type ListAppointmentsQuery = z.infer<typeof listAppointmentsQuerySchema>;
-
-/** Paginação */
-export const paginationSchema = z.object({
-  page: z.number(),
-  limit: z.number(),
-  total: z.number(),
-  totalPages: z.number(),
-});
 
 /** GET /api/appointments — Response Body */
 export const paginatedAppointmentsResponseSchema = z.object({

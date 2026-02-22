@@ -1,5 +1,5 @@
-import { Result } from "../../core/result/result.js";
-import type { Result as ResultType } from "../../core/result/result.js";
+import type { Result } from "../../core/result/result.js";
+import { Result as R } from "../../core/result/result.js";
 import type { Role } from "../../core/session/session.guard.js";
 import type { INotificationRepository } from "./5_repository.js";
 import type {
@@ -22,20 +22,20 @@ export interface INotificationService {
     callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
-  ): Promise<ResultType<PaginatedNotificationsResponse>>;
+  ): Promise<Result<PaginatedNotificationsResponse>>;
 
   getById(
     id: string,
     callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
-  ): Promise<ResultType<NotificationProfile>>;
+  ): Promise<Result<NotificationProfile>>;
 
   send(
     input: SendNotificationRequest,
     callerRole: Role,
     callerTenantId: string | null,
-  ): Promise<ResultType<NotificationProfile>>;
+  ): Promise<Result<NotificationProfile>>;
 }
 
 function toProfile(row: NotificationRow): NotificationProfile {
@@ -58,45 +58,45 @@ export function createNotificationService(repo: INotificationRepository): INotif
     callerRole: Role,
     callerUserId: string,
     callerTenantId: string | null,
-  ): Promise<ResultType<void>> {
-    if (callerRole === "OWNER") return Result.ok(undefined);
+  ): Promise<Result<void>> {
+    if (callerRole === "OWNER") return R.ok(undefined);
 
     if (callerRole === "USER") {
       if (notification.userId !== callerUserId) {
-        return Result.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
+        return R.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
       }
-      return Result.ok(undefined);
+      return R.ok(undefined);
     }
 
     const apptResult = await repo.findAppointmentById(notification.appointmentId);
-    if (apptResult.isErr()) return Result.fail(apptResult.error);
+    if (apptResult.isErr()) return R.fail(apptResult.error);
     if (!apptResult.value) {
-      return Result.fail({ code: "NOT_FOUND", message: "Appointment não encontrado" });
+      return R.fail({ code: "NOT_FOUND", message: "Appointment não encontrado" });
     }
     const appt = apptResult.value;
 
     if (callerRole === "OPERATOR") {
       const opResult = await repo.findOperatorByUserId(callerUserId);
-      if (opResult.isErr()) return Result.fail(opResult.error);
+      if (opResult.isErr()) return R.fail(opResult.error);
       if (!opResult.value || opResult.value.id !== appt.operatorId) {
-        return Result.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
+        return R.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
       }
-      return Result.ok(undefined);
+      return R.ok(undefined);
     }
 
     if (callerRole === "TENANT") {
       if (!callerTenantId) {
-        return Result.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
+        return R.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
       }
       const bizResult = await repo.findBusinessById(appt.businessId);
-      if (bizResult.isErr()) return Result.fail(bizResult.error);
+      if (bizResult.isErr()) return R.fail(bizResult.error);
       if (!bizResult.value || bizResult.value.tenantId !== callerTenantId) {
-        return Result.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
+        return R.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
       }
-      return Result.ok(undefined);
+      return R.ok(undefined);
     }
 
-    return Result.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
+    return R.fail({ code: "FORBIDDEN", message: "Sem acesso a esta notificação" });
   }
 
   return {
@@ -114,9 +114,9 @@ export function createNotificationService(repo: INotificationRepository): INotif
         params.userId = callerUserId;
       } else if (callerRole === "OPERATOR") {
         const opResult = await repo.findOperatorByUserId(callerUserId);
-        if (opResult.isErr()) return Result.fail(opResult.error);
+        if (opResult.isErr()) return R.fail(opResult.error);
         if (!opResult.value) {
-          return Result.ok({
+          return R.ok({
             data: [],
             pagination: { page: query.page, limit: query.limit, total: 0, totalPages: 0 },
           });
@@ -124,7 +124,7 @@ export function createNotificationService(repo: INotificationRepository): INotif
         params.operatorId = opResult.value.id;
       } else if (callerRole === "TENANT") {
         if (!callerTenantId) {
-          return Result.ok({
+          return R.ok({
             data: [],
             pagination: { page: query.page, limit: query.limit, total: 0, totalPages: 0 },
           });
@@ -134,10 +134,10 @@ export function createNotificationService(repo: INotificationRepository): INotif
       // OWNER: sem filtro extra
 
       const result = await repo.findAll(params);
-      if (result.isErr()) return Result.fail(result.error);
+      if (result.isErr()) return R.fail(result.error);
 
       const { data, total } = result.value;
-      return Result.ok({
+      return R.ok({
         data: data.map(toProfile),
         pagination: {
           page: query.page,
@@ -150,9 +150,9 @@ export function createNotificationService(repo: INotificationRepository): INotif
 
     async getById(id, callerRole, callerUserId, callerTenantId) {
       const result = await repo.findById(id);
-      if (result.isErr()) return Result.fail(result.error);
+      if (result.isErr()) return R.fail(result.error);
       if (!result.value) {
-        return Result.fail({ code: "NOT_FOUND", message: "Notificação não encontrada" });
+        return R.fail({ code: "NOT_FOUND", message: "Notificação não encontrada" });
       }
 
       const accessResult = await checkNotificationAccess(
@@ -161,30 +161,30 @@ export function createNotificationService(repo: INotificationRepository): INotif
         callerUserId,
         callerTenantId,
       );
-      if (accessResult.isErr()) return Result.fail(accessResult.error);
+      if (accessResult.isErr()) return R.fail(accessResult.error);
 
-      return Result.ok(toProfile(result.value));
+      return R.ok(toProfile(result.value));
     },
 
     async send(input, callerRole, callerTenantId) {
       const apptResult = await repo.findAppointmentById(input.appointmentId);
-      if (apptResult.isErr()) return Result.fail(apptResult.error);
+      if (apptResult.isErr()) return R.fail(apptResult.error);
       if (!apptResult.value) {
-        return Result.fail({ code: "NOT_FOUND", message: "Appointment não encontrado" });
+        return R.fail({ code: "NOT_FOUND", message: "Appointment não encontrado" });
       }
       const appt = apptResult.value;
 
       if (callerRole === "TENANT") {
         if (!callerTenantId) {
-          return Result.fail({
+          return R.fail({
             code: "FORBIDDEN",
             message: "Sem acesso a este appointment",
           });
         }
         const bizResult = await repo.findBusinessById(appt.businessId);
-        if (bizResult.isErr()) return Result.fail(bizResult.error);
+        if (bizResult.isErr()) return R.fail(bizResult.error);
         if (!bizResult.value || bizResult.value.tenantId !== callerTenantId) {
-          return Result.fail({
+          return R.fail({
             code: "FORBIDDEN",
             message: "Appointment não pertence ao seu tenant",
           });
@@ -198,9 +198,9 @@ export function createNotificationService(repo: INotificationRepository): INotif
         channel: input.channel,
         content: input.content,
       });
-      if (createResult.isErr()) return Result.fail(createResult.error);
+      if (createResult.isErr()) return R.fail(createResult.error);
 
-      return Result.ok(toProfile(createResult.value));
+      return R.ok(toProfile(createResult.value));
     },
   };
 }

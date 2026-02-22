@@ -18,7 +18,10 @@ export interface IAvailabilityRepository {
   create(
     data: Omit<AvailabilityRuleRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<AvailabilityRuleRow>>;
-  update(id: string, data: Partial<AvailabilityRuleRow>): Promise<Result<AvailabilityRuleRow>>;
+  update(
+    id: string,
+    data: Partial<Omit<AvailabilityRuleRow, "id" | "operatorId" | "createdAt" | "updatedAt">>,
+  ): Promise<Result<AvailabilityRuleRow>>;
   softDelete(id: string): Promise<Result<void>>;
   findOperatorById(
     operatorId: string,

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import type { Config } from "../../core/config/config.js";
@@ -19,10 +20,14 @@ export interface IUserHandler {
   register(app: OpenAPIHono): void;
 }
 
-/** Valida a admin key do header X-Admin-Key */
+/** Valida a admin key do header X-Admin-Key (timing-safe) */
 function validateAdminKey(c: Context, config: Config): boolean {
   const key = c.req.header("X-Admin-Key");
-  return key === config.ADMIN_API_KEY;
+  if (!key) return false;
+  const a = Buffer.from(key);
+  const b = Buffer.from(config.ADMIN_API_KEY);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 export function createUserHandler(service: IUserService, config: Config): IUserHandler {

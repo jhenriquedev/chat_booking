@@ -129,7 +129,7 @@ export function createNotificationRepository(container: Container): INotificatio
           db.select({ total: count() }).from(notifications).where(where),
         ]);
 
-        return { data, total: countResult[0].total };
+        return { data, total: countResult[0]?.total ?? 0 };
       }, "DB_QUERY_FAILED");
     },
 
@@ -169,7 +169,7 @@ export function createNotificationRepository(container: Container): INotificatio
         const rows = await db
           .select({ id: operators.id })
           .from(operators)
-          .where(eq(operators.userId, userId))
+          .where(and(eq(operators.userId, userId), eq(operators.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");

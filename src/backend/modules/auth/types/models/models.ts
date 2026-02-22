@@ -1,5 +1,3 @@
-import type { RefreshTokenEntity } from "../entities/entities.js";
-
 /** Row do refresh_tokens retornada pelo Drizzle */
 export type RefreshTokenRow = {
   id: string;
@@ -21,14 +19,3 @@ export type UserRow = {
   createdAt: Date;
   updatedAt: Date;
 };
-
-/** Converte row do DB para RefreshTokenEntity */
-export function toRefreshTokenEntity(row: RefreshTokenRow): RefreshTokenEntity {
-  return {
-    id: row.id,
-    userId: row.userId,
-    token: row.token,
-    expiresAt: row.expiresAt,
-    createdAt: row.createdAt,
-  };
-}

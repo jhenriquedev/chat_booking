@@ -16,7 +16,10 @@ export interface IServiceRepository {
   create(
     data: Omit<ServiceRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<ServiceRow>>;
-  update(id: string, data: Partial<ServiceRow>): Promise<Result<ServiceRow>>;
+  update(
+    id: string,
+    data: Partial<Omit<ServiceRow, "id" | "businessId" | "createdAt" | "updatedAt">>,
+  ): Promise<Result<ServiceRow>>;
   softDelete(id: string): Promise<Result<void>>;
   findBusinessById(businessId: string): Promise<Result<{ id: string; tenantId: string } | null>>;
 }

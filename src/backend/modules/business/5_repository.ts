@@ -17,7 +17,10 @@ export interface IBusinessRepository {
   create(
     data: Omit<BusinessRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<BusinessRow>>;
-  update(id: string, data: Partial<BusinessRow>): Promise<Result<BusinessRow>>;
+  update(
+    id: string,
+    data: Partial<Omit<BusinessRow, "id" | "tenantId" | "createdAt" | "updatedAt">>,
+  ): Promise<Result<BusinessRow>>;
   softDelete(id: string): Promise<Result<void>>;
 }
 

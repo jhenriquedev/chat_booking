@@ -228,8 +228,17 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
         return R.fail({ code: "ALREADY_INACTIVE", message: "Operador já está inativo" });
       }
 
+      // Determina o role anterior: se o user possui um tenant, reverte para TENANT; senão, USER
+      const tenantResult = await repository.findTenantByUserId(findResult.value.userId);
+      if (tenantResult.isErr()) return R.fail(tenantResult.error);
+      const previousRole = tenantResult.value ? "TENANT" : "USER";
+
       // Desativa operador e reverte role em transação atômica
-      const deleteResult = await repository.softDeleteWithRoleRevert(id, findResult.value.userId);
+      const deleteResult = await repository.softDeleteWithRoleRevert(
+        id,
+        findResult.value.userId,
+        previousRole,
+      );
       if (deleteResult.isErr()) return R.fail(deleteResult.error);
 
       return R.ok({ message: "Operador desativado com sucesso" });

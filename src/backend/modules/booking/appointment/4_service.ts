@@ -149,6 +149,14 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
         return R.fail({ code: "VALIDATION_ERROR", message: "Serviço está inativo" });
       }
 
+      // Verifica que o serviço pertence ao mesmo business do operador
+      if (service.businessId !== operator.businessId) {
+        return R.fail({
+          code: "VALIDATION_ERROR",
+          message: "Serviço não pertence ao mesmo business do operador",
+        });
+      }
+
       // Verifica vínculo operator_services ativo
       const opServiceResult = await repository.findOperatorService(
         slot.operatorId,
