@@ -5,14 +5,7 @@ import { jwt } from "hono/jwt";
 import { z } from "zod";
 import { config } from "../config/config.js";
 
-export const Roles = {
-  OWNER: "OWNER",
-  TENANT: "TENANT",
-  OPERATOR: "OPERATOR",
-  USER: "USER",
-} as const;
-
-export type Role = (typeof Roles)[keyof typeof Roles];
+export type Role = "OWNER" | "TENANT" | "OPERATOR" | "USER";
 
 const sessionPayloadSchema = z.object({
   sub: z.string(),
@@ -74,7 +67,7 @@ export const requireRole = (...allowed: Role[]) => {
     const session = getSession(c);
 
     if (!allowed.includes(session.role)) {
-      return c.json({ error: "Forbidden", message: "Insufficient permissions" }, 403);
+      return c.json({ error: { code: "FORBIDDEN", message: "Permissão insuficiente" } }, 403);
     }
 
     await next();

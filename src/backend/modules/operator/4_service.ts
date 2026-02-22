@@ -242,7 +242,7 @@ export function createOperatorService(repository: IOperatorRepository): IOperato
       // Determina o role anterior: busca o user atual, se é OWNER mantém; se tem tenant, TENANT; senão USER
       const currentUser = await repository.findUserById(findResult.value.userId);
       if (currentUser.isErr()) return R.fail(currentUser.error);
-      let previousRole = "USER";
+      let previousRole: Role = "USER";
       if (currentUser.value?.role === "OWNER") {
         previousRole = "OWNER";
       } else {

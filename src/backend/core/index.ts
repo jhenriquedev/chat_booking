@@ -15,7 +15,6 @@ export {
   getSession,
   hasRole,
   requireRole,
-  Roles,
   type Role,
   type SessionPayload,
 } from "./session/session.guard.js";

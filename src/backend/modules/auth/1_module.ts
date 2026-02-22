@@ -6,7 +6,7 @@ import { createAuthRepository } from "./5_repository.js";
 
 export const createAuthModule: ModuleFactory = (container) => {
   const repository = createAuthRepository(container);
-  const service = createAuthService(container, repository);
+  const service = createAuthService(container.config, repository);
   const handler = createAuthHandler(service);
 
   const app = new OpenAPIHono();

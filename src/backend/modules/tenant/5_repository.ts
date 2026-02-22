@@ -6,7 +6,7 @@ import { tenants, users } from "../../shared/schemas/index.js";
 import type { TenantRow, TenantWithUserRow } from "./types/models/models.js";
 
 /** Row mínima do user retornada nas operações internas do tenant */
-type UserRow = {
+type TenantUserRow = {
   id: string;
   name: string;
   phone: string;
@@ -24,7 +24,7 @@ export interface ITenantRepository {
   }): Promise<Result<{ data: TenantWithUserRow[]; total: number }>>;
   update(id: string, data: Partial<Pick<TenantRow, "active">>): Promise<Result<TenantRow>>;
   softDelete(id: string): Promise<Result<void>>;
-  findUserByPhoneHash(phoneHash: string): Promise<Result<UserRow | null>>;
+  findUserByPhoneHash(phoneHash: string): Promise<Result<TenantUserRow | null>>;
   createTenantWithUser(data: {
     existingUserId?: string;
     name: string;

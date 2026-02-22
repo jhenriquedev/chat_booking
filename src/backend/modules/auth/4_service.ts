@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { sign } from "hono/jwt";
-import type { Container } from "../../core/container/container.js";
+import type { Config } from "../../core/config/config.js";
 import { hashPhone } from "../../core/crypto/crypto.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
@@ -22,9 +22,7 @@ function parseRole(role: string): Role | null {
   return VALID_ROLES.has(role) ? (role as Role) : null;
 }
 
-export function createAuthService(container: Container, repository: IAuthRepository): IAuthService {
-  const { config } = container;
-
+export function createAuthService(config: Config, repository: IAuthRepository): IAuthService {
   /** Hash SHA-256 do refresh token */
   function hashToken(raw: string): string {
     return createHash("sha256").update(raw).digest("hex");

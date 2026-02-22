@@ -2,6 +2,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
+import type { Role } from "../../core/session/session.guard.js";
 import {
   businesses,
   operatorServices,
@@ -42,7 +43,7 @@ export interface IOperatorRepository {
     data: Omit<OperatorRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<OperatorRow>>;
   findTenantByUserId(userId: string): Promise<Result<{ id: string } | null>>;
-  softDeleteWithRoleRevert(id: string, userId: string, previousRole: string): Promise<Result<void>>;
+  softDeleteWithRoleRevert(id: string, userId: string, previousRole: Role): Promise<Result<void>>;
 }
 
 export function createOperatorRepository(container: Container): IOperatorRepository {
@@ -51,11 +52,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
   return {
     async findById(id) {
       return R.fromAsync(async () => {
-        const rows = await db
-          .select()
-          .from(operators)
-          .where(and(eq(operators.id, id), eq(operators.active, true)))
-          .limit(1);
+        const rows = await db.select().from(operators).where(eq(operators.id, id)).limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
     },
@@ -236,7 +233,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
           await tx
             .update(users)
             .set({
-              role: previousRole as "USER" | "OPERATOR" | "TENANT" | "OWNER",
+              role: previousRole,
               updatedAt: sql`now()`,
             })
             .where(eq(users.id, userId));
