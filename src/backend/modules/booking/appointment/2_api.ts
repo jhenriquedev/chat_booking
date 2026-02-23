@@ -182,6 +182,43 @@ export const cancelAppointmentRoute = createRoute({
   },
 });
 
+// ========== NO-SHOW ==========
+
+export const noShowAppointmentRoute = createRoute({
+  method: "patch",
+  path: "/{id}/no-show",
+  tags: ["Appointments"],
+  summary: "Marcar agendamento como no-show",
+  description:
+    "Marca um agendamento CONFIRMED como NO_SHOW quando o cliente não comparece. Restrito a TENANT, OWNER e OPERATOR.",
+  security: [{ Bearer: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: appointmentProfileSchema } },
+      description: "Agendamento marcado como no-show",
+    },
+    401: {
+      content: { "application/json": { schema: errorResponseSchema } },
+      description: "Token ausente ou inválido",
+    },
+    403: {
+      content: { "application/json": { schema: errorResponseSchema } },
+      description: "Permissão insuficiente",
+    },
+    404: {
+      content: { "application/json": { schema: errorResponseSchema } },
+      description: "Agendamento não encontrado",
+    },
+    409: {
+      content: { "application/json": { schema: errorResponseSchema } },
+      description: "Status atual não permite marcar como no-show",
+    },
+  },
+});
+
 // ========== COMPLETE ==========
 
 export const completeAppointmentRoute = createRoute({

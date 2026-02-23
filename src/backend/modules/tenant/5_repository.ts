@@ -2,7 +2,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import type { Container } from "../../core/container/container.js";
 import type { Result } from "../../core/result/result.js";
 import { Result as R } from "../../core/result/result.js";
-import { tenants, users } from "../../shared/schemas/index.js";
+import { businesses, operators, tenants, users } from "../../shared/schemas/index.js";
 import type { TenantRow, TenantWithUserRow } from "./types/models/models.js";
 
 /** Row mínima do user retornada nas operações internas do tenant */
@@ -104,10 +104,20 @@ export function createTenantRepository(container: Container): ITenantRepository 
 
     async softDelete(id) {
       return R.fromAsync(async () => {
-        await db
-          .update(tenants)
-          .set({ active: false, updatedAt: sql`now()` })
-          .where(eq(tenants.id, id));
+        await db.transaction(async (tx) => {
+          await tx
+            .update(tenants)
+            .set({ active: false, updatedAt: sql`now()` })
+            .where(eq(tenants.id, id));
+          await tx
+            .update(businesses)
+            .set({ active: false, updatedAt: sql`now()` })
+            .where(eq(businesses.tenantId, id));
+          await tx
+            .update(operators)
+            .set({ active: false, updatedAt: sql`now()` })
+            .where(eq(operators.tenantId, id));
+        });
       }, "DB_QUERY_FAILED");
     },
 

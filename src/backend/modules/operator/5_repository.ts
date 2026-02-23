@@ -216,7 +216,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
         const rows = await db
           .select({ id: tenants.id })
           .from(tenants)
-          .where(eq(tenants.userId, userId))
+          .where(and(eq(tenants.userId, userId), eq(tenants.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");

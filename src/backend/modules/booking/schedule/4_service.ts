@@ -122,8 +122,9 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
       const accessCheck = await checkOperatorAccess(input.operatorId, callerRole, callerTenantId);
       if (accessCheck.isErr()) return R.fail(accessCheck.error);
 
-      // Valida que dateFrom não é no passado
-      const today = new Date().toISOString().split("T")[0];
+      // Valida que dateFrom não é no passado (respeita TZ do servidor)
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
       if (input.dateFrom < today) {
         return R.fail({
           code: "VALIDATION_ERROR",

@@ -6,34 +6,35 @@ Gestao de tenants (donos de negocio) no sistema multi-tenant.
 
 ### POST /api/tenants
 
-Cria um novo tenant vinculando um usuario existente.
+Cria um novo tenant a partir de um telefone. Busca ou cria o usuario automaticamente.
 
 **Acesso:** OWNER
 
 **Request Body:**
 
-| Campo    | Tipo   | Obrigatorio | Descricao                |
-|----------|--------|-------------|--------------------------|
-| `userId` | string | Sim         | UUID do usuario a vincular |
+| Campo   | Tipo   | Obrigatorio | Descricao                                        |
+|---------|--------|-------------|--------------------------------------------------|
+| `phone` | string | Sim         | Telefone internacional (ex: +5511999999999)      |
+| `name`  | string | Nao         | Nome do tenant (usa o telefone se nao informado) |
 
 **Response 201:** Perfil do tenant criado (ver schema abaixo).
 
 **Regras de negocio:**
 
-1. Verifica se o usuario existe
-2. Verifica se o usuario ja nao e tenant (userId unique)
-3. Cria o registro na tabela tenants
-4. Promove o role do usuario para TENANT automaticamente
-5. Retorna tenant com dados do usuario (nome, telefone)
+1. Busca usuario pelo hash do telefone
+2. Se usuario existe: verifica que nao e OWNER e que ainda nao e tenant
+3. Se usuario nao existe: cria usuario com role TENANT
+4. Se usuario existe: promove role para TENANT
+5. Cria registro na tabela tenants em transacao atomica
+6. Retorna tenant com dados do usuario (nome, telefone)
 
 **Erros:**
 
-| Status | Code           | Quando                     |
-|--------|----------------|----------------------------|
-| 403    | FORBIDDEN      | Role insuficiente          |
-| 404    | NOT_FOUND      | Usuario nao encontrado     |
-| 409    | ALREADY_EXISTS | Usuario ja e tenant        |
-| 422    | VALIDATION_ERROR | Body invalido (Zod)      |
+| Status | Code             | Quando                              |
+|--------|------------------|-------------------------------------|
+| 403    | FORBIDDEN        | Role insuficiente ou usuario e OWNER |
+| 409    | ALREADY_EXISTS   | Telefone ja vinculado a um tenant   |
+| 422    | VALIDATION_ERROR | Body invalido (Zod)                 |
 
 ---
 
@@ -115,9 +116,9 @@ Desativa um tenant (soft delete).
 
 **Regras de negocio:**
 
-1. Soft delete: seta `active = false`
+1. Soft delete em transacao atomica: seta `active = false` no tenant, businesses e operators associados
 2. Se ja estiver inativo, retorna erro `ALREADY_INACTIVE`
-3. Tenant pode ser reativado via `PATCH /:id`
+3. Tenant pode ser reativado via `PATCH /:id` (businesses e operators precisam ser reativados individualmente)
 
 ---
 
@@ -143,7 +144,6 @@ Desativa um tenant (soft delete).
 | `listTenantsQuerySchema`        | types/dtos/dtos.ts | Query params do GET /      |
 | `paginatedTenantsResponseSchema`| types/dtos/dtos.ts | Response do GET / (paginado)|
 | `messageResponseSchema`         | types/dtos/dtos.ts | Response do DELETE         |
-| `tenantEntitySchema`            | types/entities/entities.ts | Validacao da entidade |
 | `errorResponseSchema`           | shared/dtos.ts     | Resposta padrao de erro    |
 
 ## Permissoes por role
@@ -168,6 +168,7 @@ Desativa um tenant (soft delete).
 
 ## Dependencias
 
-- **User module**: usa `IUserRepository.findById` para verificar usuario na criacao
-- **User schema**: JOIN em users para trazer nome/telefone no response
+- **User schema**: JOIN em users para trazer nome/telefone no response, busca por phoneHash na criacao
+- **Business schema**: desativa businesses associadas no soft delete
+- **Operator schema**: desativa operators associados no soft delete
 - **Promove role**: ao criar tenant, atualiza `users.role` para "TENANT"

@@ -277,8 +277,8 @@ export function createAppointmentRepository(container: Container): IAppointmentR
     },
 
     async createWithSlotBooking(data, slotId) {
-      try {
-        const row = await db.transaction(async (tx) => {
+      const result = await R.fromAsync(async () => {
+        return db.transaction(async (tx) => {
           // Atualiza slot para BOOKED apenas se ainda estiver AVAILABLE (lock otimista)
           const slotUpdate = await tx
             .update(scheduleSlots)
@@ -309,17 +309,13 @@ export function createAppointmentRepository(container: Container): IAppointmentR
 
           return rows[0];
         });
+      }, "DB_QUERY_FAILED");
 
-        if (!row) {
-          return R.fail({ code: "CONFLICT", message: "Slot não está disponível" });
-        }
-        return R.ok(row);
-      } catch (err) {
-        return R.fail({
-          code: "DB_QUERY_FAILED",
-          message: err instanceof Error ? err.message : String(err),
-        });
+      if (result.isErr()) return R.fail(result.error);
+      if (!result.value) {
+        return R.fail({ code: "CONFLICT", message: "Slot não está disponível" });
       }
+      return R.ok(result.value);
     },
 
     async cancelWithSlotRelease(id, extra, slotId) {

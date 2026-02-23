@@ -47,6 +47,12 @@ export interface IAppointmentService {
     callerUserId: string,
     callerTenantId: string | null,
   ): Promise<Result<AppointmentProfile>>;
+  noShow(
+    id: string,
+    callerRole: Role,
+    callerUserId: string,
+    callerTenantId: string | null,
+  ): Promise<Result<AppointmentProfile>>;
 }
 
 function toProfile(row: AppointmentRow): AppointmentProfile {
@@ -367,6 +373,36 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
       const updateResult = await repository.updateStatus(id, "COMPLETED", {
         completedAt: new Date(),
       });
+      if (updateResult.isErr()) return R.fail(updateResult.error);
+
+      return R.ok(toProfile(updateResult.value));
+    },
+
+    async noShow(id, callerRole, callerUserId, callerTenantId) {
+      const findResult = await repository.findById(id);
+      if (findResult.isErr()) return R.fail(findResult.error);
+      if (!findResult.value) {
+        return R.fail({ code: "NOT_FOUND", message: "Agendamento não encontrado" });
+      }
+
+      const appointment = findResult.value;
+
+      if (appointment.status !== "CONFIRMED") {
+        return R.fail({
+          code: "CONFLICT",
+          message: "Apenas agendamentos CONFIRMED podem ser marcados como no-show",
+        });
+      }
+
+      const accessCheck = await checkAppointmentAccess(
+        appointment,
+        callerRole,
+        callerUserId,
+        callerTenantId,
+      );
+      if (accessCheck.isErr()) return R.fail(accessCheck.error);
+
+      const updateResult = await repository.updateStatus(id, "NO_SHOW");
       if (updateResult.isErr()) return R.fail(updateResult.error);
 
       return R.ok(toProfile(updateResult.value));
