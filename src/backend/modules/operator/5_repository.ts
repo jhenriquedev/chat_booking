@@ -186,6 +186,11 @@ export function createOperatorRepository(container: Container): IOperatorReposit
       }, "DB_QUERY_FAILED");
     },
 
+    /**
+     * Cria um operador e promove o usuário associado para role OPERATOR
+     * de forma atômica. A reversão do role em caso de remoção do operador
+     * é feita por `softDeleteWithRoleRevert`.
+     */
     async createWithRolePromotion(data) {
       return R.fromAsync(async () => {
         return db.transaction(async (tx) => {
@@ -222,6 +227,11 @@ export function createOperatorRepository(container: Container): IOperatorReposit
       }, "DB_QUERY_FAILED");
     },
 
+    /**
+     * Desativa o operador e restaura o role anterior do usuário
+     * (USER ou TENANT), garantindo consistência entre tabela de operadores
+     * e role armazenado em users.
+     */
     async softDeleteWithRoleRevert(id, userId, previousRole) {
       return R.fromAsync(async () => {
         await db.transaction(async (tx) => {

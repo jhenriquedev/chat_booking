@@ -237,7 +237,13 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
         }
         params.operatorId = operatorResult.value.id;
       } else if (callerRole === "TENANT") {
-        params.tenantId = callerTenantId ?? undefined;
+        if (!callerTenantId) {
+          return R.fail({
+            code: "FORBIDDEN",
+            message: "Usuário não está vinculado a um tenant",
+          });
+        }
+        params.tenantId = callerTenantId;
       }
       // OWNER: sem filtro adicional
 

@@ -73,13 +73,24 @@ export function createUserService(repository: IUserRepository): IUserService {
     },
 
     async listUsers(query, callerRole, callerTenantId) {
+      let tenantFilter: string | undefined;
+      if (callerRole === "TENANT") {
+        if (!callerTenantId) {
+          return R.fail({
+            code: "FORBIDDEN",
+            message: "Usuário não está vinculado a um tenant",
+          });
+        }
+        tenantFilter = callerTenantId;
+      }
+
       const result = await repository.findAll({
         page: query.page,
         limit: query.limit,
         role: query.role,
         active: query.active,
         search: query.search,
-        tenantId: callerRole === "TENANT" ? (callerTenantId ?? undefined) : undefined,
+        tenantId: tenantFilter,
       });
       if (result.isErr()) return R.fail(result.error);
 
@@ -97,7 +108,14 @@ export function createUserService(repository: IUserRepository): IUserService {
     },
 
     async getUserById(id, callerRole, callerTenantId) {
-      if (callerRole === "TENANT" && callerTenantId) {
+      if (callerRole === "TENANT") {
+        if (!callerTenantId) {
+          return R.fail({
+            code: "FORBIDDEN",
+            message: "Usuário não está vinculado a um tenant",
+          });
+        }
+
         const belongs = await repository.userBelongsToTenant(id, callerTenantId);
         if (belongs.isErr()) return R.fail(belongs.error);
         if (!belongs.value) return R.fail({ code: "NOT_FOUND", message: "Usuário não encontrado" });

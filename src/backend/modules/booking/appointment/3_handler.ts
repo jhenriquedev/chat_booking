@@ -72,7 +72,8 @@ export function createAppointmentHandler(service: IAppointmentService): IAppoint
       app.openapi(cancelAppointmentRoute, async (c): Promise<any> => {
         const session = getSession(c);
         const { id } = c.req.valid("param");
-        const body = c.req.valid("json") ?? {};
+        const contentType = c.req.header("content-type") ?? "";
+        const body = contentType.includes("application/json") ? c.req.valid("json") : {};
         const result = await service.cancel(id, body, session.role, session.sub, session.tenantId);
 
         if (result.isErr()) return respondError(c, result.error);

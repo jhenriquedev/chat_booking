@@ -102,6 +102,11 @@ export function createTenantRepository(container: Container): ITenantRepository 
       }, "DB_QUERY_FAILED");
     },
 
+    /**
+     * Desativa tenant e marca businesses/operators relacionados como inativos.
+     * Não altera o role dos usuários associados — a reversão de role é responsabilidade
+     * de fluxos específicos (ex: remoção de operador).
+     */
     async softDelete(id) {
       return R.fromAsync(async () => {
         await db.transaction(async (tx) => {
@@ -138,6 +143,11 @@ export function createTenantRepository(container: Container): ITenantRepository 
       }, "DB_QUERY_FAILED");
     },
 
+    /**
+     * Cria um tenant e garante que o usuário associado tenha role TENANT.
+     * Se o usuário já existir, seu role é sobrescrito para TENANT; caso contrário,
+     * um novo usuário é criado com role TENANT.
+     */
     async createTenantWithUser(data) {
       return R.fromAsync(async () => {
         return db.transaction(async (tx) => {

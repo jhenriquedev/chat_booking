@@ -1,5 +1,6 @@
 import { and, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import type { Container } from "../../../core/container/container.js";
+import { endOfDayUtcFromYmd, startOfDayUtcFromYmd } from "../../../core/date/date.utils.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
 import {
@@ -119,12 +120,10 @@ export function createAppointmentRepository(container: Container): IAppointmentR
           conditions.push(eq(appointments.status, params.status as AppointmentRow["status"]));
         }
         if (params.dateFrom) {
-          conditions.push(gte(appointments.scheduledAt, new Date(`${params.dateFrom}T00:00:00Z`)));
+          conditions.push(gte(appointments.scheduledAt, startOfDayUtcFromYmd(params.dateFrom)));
         }
         if (params.dateTo) {
-          conditions.push(
-            lte(appointments.scheduledAt, new Date(`${params.dateTo}T23:59:59.999Z`)),
-          );
+          conditions.push(lte(appointments.scheduledAt, endOfDayUtcFromYmd(params.dateTo)));
         }
         if (params.tenantId) {
           conditions.push(

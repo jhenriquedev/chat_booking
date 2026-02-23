@@ -1,3 +1,4 @@
+import { todayLocalYmd } from "../../../core/date/date.utils.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
 import type { Role } from "../../../core/session/session.guard.js";
@@ -123,8 +124,7 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
       if (accessCheck.isErr()) return R.fail(accessCheck.error);
 
       // Valida que dateFrom não é no passado (respeita TZ do servidor)
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const today = todayLocalYmd();
       if (input.dateFrom < today) {
         return R.fail({
           code: "VALIDATION_ERROR",

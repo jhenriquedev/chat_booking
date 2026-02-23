@@ -129,9 +129,9 @@ export function createNotificationService(repo: INotificationRepository): INotif
         params.operatorId = opResult.value.id;
       } else if (callerRole === "TENANT") {
         if (!callerTenantId) {
-          return R.ok({
-            data: [],
-            pagination: { page: query.page, limit: query.limit, total: 0, totalPages: 0 },
+          return R.fail({
+            code: "FORBIDDEN",
+            message: "Usuário não está vinculado a um tenant",
           });
         }
         params.tenantId = callerTenantId;

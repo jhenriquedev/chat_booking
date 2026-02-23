@@ -97,7 +97,7 @@ export function createAuthService(config: Config, repository: IAuthRepository): 
 
       // 3. Verifica se está ativo
       if (!user.active) {
-        return R.fail({ code: AuthErrorCode.UNAUTHORIZED, message: "Conta de usuário inativa" });
+        return R.fail({ code: AuthErrorCode.USER_INACTIVE, message: "Conta de usuário inativa" });
       }
 
       // 4. Valida role do DB
