@@ -1,0 +1,1 @@
+ALTER TABLE "chatbooking"."availability_rules" ADD CONSTRAINT "chk_day_of_week" CHECK ("chatbooking"."availability_rules"."day_of_week" >= 0 AND "chatbooking"."availability_rules"."day_of_week" <= 6);

@@ -1,0 +1,749 @@
+{
+  "name": "Chat Booking - Fluxo Principal",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Configuração Necessária\n\n### Variáveis de Ambiente (n8n)\n- `BACKEND_URL` — URL base da API (ex: http://localhost:3000)\n- `EVOLUTION_API_URL` — URL da Evolution API (ex: http://localhost:8080)\n- `BUSINESS_ID` — ID do negócio padrão\n- `BUSINESS_SLUG` — Slug do negócio padrão\n\n### Credenciais (n8n)\n1. **Redis** — conexão Redis (host, porta, senha)\n2. **OpenAI** — API key da OpenAI\n3. **Backend API** — HTTP Header Auth (Authorization: Bearer TOKEN)\n4. **Evolution API** — HTTP Header Auth (apikey: CHAVE)\n\n### Webhook\nConfigure a Evolution API para enviar eventos `messages.upsert` para:\n`POST {N8N_URL}/webhook/evolution`",
+        "height": 520,
+        "width": 420,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-460, 40],
+      "id": "f0a1b2c3-0000-4000-8000-000000000000",
+      "name": "Instruções de Setup"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-webhook",
+        "options": {
+          "responseMode": "onReceived",
+          "responseData": "allEntries"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "id": "f0a1b2c3-0001-4000-8000-000000000001",
+      "name": "Webhook",
+      "webhookId": "evolution-webhook"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const body = item.json;\n\n  if (body.event !== 'messages.upsert' || !body.data) {\n    continue;\n  }\n\n  const data = body.data;\n  const key = data.key || {};\n  const fromMe = key.fromMe || false;\n  const remoteJid = key.remoteJid || '';\n  const isGroup = remoteJid.endsWith('@g.us');\n  const isStatus = remoteJid === 'status@broadcast';\n  const phone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');\n\n  let messageText = '';\n  let messageType = 'unknown';\n\n  if (data.message?.conversation) {\n    messageText = data.message.conversation;\n    messageType = 'text';\n  } else if (data.message?.extendedTextMessage?.text) {\n    messageText = data.message.extendedTextMessage.text;\n    messageType = 'text';\n  } else if (data.message?.imageMessage) {\n    messageType = 'image';\n  } else if (data.message?.audioMessage) {\n    messageType = 'audio';\n  } else if (data.message?.videoMessage) {\n    messageType = 'video';\n  } else if (data.message?.documentMessage) {\n    messageType = 'document';\n  } else if (data.message?.stickerMessage) {\n    messageType = 'sticker';\n  }\n\n  const pushName = data.pushName || '';\n  const instance = body.instance || '';\n\n  results.push({\n    json: {\n      phone,\n      messageText,\n      messageType,\n      pushName,\n      instance,\n      isGroup,\n      isStatus,\n      fromMe,\n      remoteJid\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "id": "f0a1b2c3-0002-4000-8000-000000000002",
+      "name": "Extrair Campos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "cond-valid-1",
+              "leftValue": "={{ $json.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            },
+            {
+              "id": "cond-valid-2",
+              "leftValue": "={{ $json.isGroup }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            },
+            {
+              "id": "cond-valid-3",
+              "leftValue": "={{ $json.isStatus }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              }
+            },
+            {
+              "id": "cond-valid-4",
+              "leftValue": "={{ $json.messageType }}",
+              "rightValue": "text",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 300],
+      "id": "f0a1b2c3-0003-4000-8000-000000000003",
+      "name": "Mensagem Válida?"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const data = $('Extrair Campos').first().json;\n\nreturn [{\n  json: {\n    phone: data.phone,\n    instance: data.instance,\n    responseText: 'Desculpe, consigo processar apenas mensagens de texto no momento. Como posso te ajudar?'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 520],
+      "id": "f0a1b2c3-0004-4000-8000-000000000004",
+      "name": "Resposta Não-Texto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.instance }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.responseText }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1020, 520],
+      "id": "f0a1b2c3-0005-4000-8000-000000000005",
+      "name": "Enviar: Não-Texto",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "evolution-auth",
+          "name": "Evolution API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=state:{{ $json.phone }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [780, 300],
+      "id": "f0a1b2c3-0006-4000-8000-000000000006",
+      "name": "Redis: Carregar Estado",
+      "credentials": {
+        "redis": {
+          "id": "redis-cred",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "cond-handoff-1",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": "human_handoff",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1040, 300],
+      "id": "f0a1b2c3-0007-4000-8000-000000000007",
+      "name": "Handoff Ativo?"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const data = $('Extrair Campos').first().json;\n\nreturn [{\n  json: {\n    phone: data.phone,\n    instance: data.instance,\n    responseText: 'Você está sendo atendido por um de nossos atendentes. Aguarde um momento, por favor!'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 520],
+      "id": "f0a1b2c3-0008-4000-8000-000000000008",
+      "name": "Resposta Handoff"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.instance }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.responseText }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 520],
+      "id": "f0a1b2c3-0009-4000-8000-000000000009",
+      "name": "Enviar: Handoff",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "evolution-auth",
+          "name": "Evolution API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Extrair Campos').first().json.messageText }}",
+        "hasOutputParser": false,
+        "options": {
+          "systemMessage": "Você é o assistente virtual de atendimento via WhatsApp. Seu papel é ajudar clientes com agendamentos, informações sobre serviços e dados do negócio.\n\nCAPACIDADES (use as tools disponíveis):\n- Listar serviços disponíveis com preços e duração\n- Consultar horários disponíveis para uma data\n- Realizar agendamentos\n- Listar agendamentos existentes do cliente\n- Cancelar agendamentos\n- Buscar informações do negócio (endereço, horário, contato)\n- Consultar notificações do cliente\n\nREGRAS:\n1. Responda SEMPRE em português brasileiro, de forma simpática, direta e breve. É WhatsApp, não email.\n2. NUNCA invente dados. Use SOMENTE informações retornadas pelas tools.\n3. Se o cliente pedir algo fora do escopo, diga educadamente que só pode ajudar com agendamentos e informações do negócio.\n4. Se o cliente pedir para falar com um humano ou atendente, diga que vai direcionar para um atendente e inclua a tag [HANDOFF] no final da sua resposta.\n5. NÃO use formatação markdown (negrito, itálico, listas com asterisco). Use texto simples adequado para WhatsApp.\n6. Use emojis com moderação.\n7. Quando for agendar, colete e confirme: serviço, data, horário. Só finalize após confirmação do cliente.\n8. Ao listar horários, apresente de forma organizada e fácil de ler.\n9. Se uma tool retornar erro, informe o cliente de forma amigável sem expor detalhes técnicos.\n10. O ID do negócio padrão é: {{ $env.BUSINESS_ID }}\n\nINFORMAÇÕES DO CLIENTE:\n- Nome: {{ $('Extrair Campos').first().json.pushName }}\n- Telefone: {{ $('Extrair Campos').first().json.phone }}",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [1300, 300],
+      "id": "f0a1b2c3-0010-4000-8000-000000000010",
+      "name": "Agente IA"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const data = $('Extrair Campos').first().json;\nconst agentOutput = $input.first().json.output || $input.first().json.text || '';\n\nlet responseText = agentOutput;\nlet newState = 'active';\n\nif (agentOutput.includes('[HANDOFF]')) {\n  responseText = agentOutput.replace(/\\[HANDOFF\\]/g, '').trim();\n  newState = 'human_handoff';\n}\n\nreturn [{\n  json: {\n    phone: data.phone,\n    instance: data.instance,\n    responseText,\n    newState\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "id": "f0a1b2c3-0011-4000-8000-000000000011",
+      "name": "Processar Resposta"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=state:{{ $('Extrair Campos').first().json.phone }}",
+        "value": "={{ $json.newState }}",
+        "expire": true,
+        "ttl": 86400
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1820, 300],
+      "id": "f0a1b2c3-0012-4000-8000-000000000012",
+      "name": "Redis: Salvar Estado",
+      "credentials": {
+        "redis": {
+          "id": "redis-cred",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $('Processar Resposta').first().json.instance }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $('Processar Resposta').first().json.phone, text: $('Processar Resposta').first().json.responseText }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2080, 300],
+      "id": "f0a1b2c3-0013-4000-8000-000000000013",
+      "name": "Enviar WhatsApp",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "evolution-auth",
+          "name": "Evolution API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1100, 80],
+      "id": "f0a1b2c3-0014-4000-8000-000000000014",
+      "name": "OpenAI GPT-4o",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-cred",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Extrair Campos').first().json.phone }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.3,
+      "position": [1300, 80],
+      "id": "f0a1b2c3-0015-4000-8000-000000000015",
+      "name": "Memória Redis",
+      "credentials": {
+        "redis": {
+          "id": "redis-cred",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "listar_servicos",
+        "description": "Lista todos os serviços disponíveis do negócio, incluindo nome, preço e duração. Use quando o cliente perguntar quais serviços estão disponíveis, quanto custa, ou o que pode ser agendado.",
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/booking/services",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "model",
+        "queryParameters": {
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"businessId\":{\"type\":\"string\",\"description\":\"ID do negócio. Use o valor informado no contexto do sistema.\"}},\"required\":[\"businessId\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [840, 680],
+      "id": "f0a1b2c3-0016-4000-8000-000000000016",
+      "name": "Tool: Listar Serviços",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "consultar_horarios",
+        "description": "Consulta os horários disponíveis para agendamento em uma data específica. Retorna os slots livres com hora de início e fim. Use quando o cliente quiser saber quais horários estão disponíveis.",
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/booking/availability",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "model",
+        "queryParameters": {
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"businessId\":{\"type\":\"string\",\"description\":\"ID do negócio\"},\"serviceId\":{\"type\":\"string\",\"description\":\"ID do serviço desejado\"},\"date\":{\"type\":\"string\",\"description\":\"Data no formato YYYY-MM-DD\"}},\"required\":[\"businessId\",\"serviceId\",\"date\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [1040, 680],
+      "id": "f0a1b2c3-0017-4000-8000-000000000017",
+      "name": "Tool: Consultar Horários",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "agendar",
+        "description": "Cria um novo agendamento para o cliente. Use SOMENTE após confirmar com o cliente: serviço, data e horário escolhido. Precisa do slotId obtido da consulta de horários.",
+        "method": "POST",
+        "url": "={{ $env.BACKEND_URL }}/api/booking/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "model",
+        "bodyParameters": {
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"slotId\":{\"type\":\"string\",\"description\":\"ID do slot de horário obtido da consulta de horários\"},\"serviceId\":{\"type\":\"string\",\"description\":\"ID do serviço escolhido\"},\"customerPhone\":{\"type\":\"string\",\"description\":\"Telefone do cliente\"},\"customerName\":{\"type\":\"string\",\"description\":\"Nome do cliente\"},\"notes\":{\"type\":\"string\",\"description\":\"Observações adicionais do cliente (opcional)\"}},\"required\":[\"slotId\",\"serviceId\",\"customerPhone\",\"customerName\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [1240, 680],
+      "id": "f0a1b2c3-0018-4000-8000-000000000018",
+      "name": "Tool: Agendar",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "meus_agendamentos",
+        "description": "Lista os agendamentos existentes do cliente. Use quando o cliente quiser ver, consultar ou verificar seus agendamentos.",
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/booking/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "model",
+        "queryParameters": {
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"customerPhone\":{\"type\":\"string\",\"description\":\"Telefone do cliente para buscar agendamentos\"}},\"required\":[\"customerPhone\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [1440, 680],
+      "id": "f0a1b2c3-0019-4000-8000-000000000019",
+      "name": "Tool: Meus Agendamentos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "cancelar_agendamento",
+        "description": "Cancela um agendamento existente do cliente. Use quando o cliente quiser cancelar. Precisa do ID do agendamento (obtido via meus_agendamentos).",
+        "method": "PATCH",
+        "url": "={{ $env.BACKEND_URL }}/api/booking/appointments/{appointmentId}/cancel",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "appointmentId",
+              "description": "ID do agendamento a ser cancelado",
+              "type": "string"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "model",
+        "bodyParameters": {
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"reason\":{\"type\":\"string\",\"description\":\"Motivo do cancelamento informado pelo cliente\"}},\"required\":[]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [1640, 680],
+      "id": "f0a1b2c3-0020-4000-8000-000000000020",
+      "name": "Tool: Cancelar Agendamento",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "info_negocio",
+        "description": "Busca informações do negócio como endereço, horário de funcionamento, telefone e descrição. Use quando o cliente perguntar sobre o local, endereço, como chegar, ou horário de funcionamento.",
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/businesses/{slug}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "slug",
+              "description": "Slug (identificador) do negócio. Use o valor da variável BUSINESS_SLUG informada no contexto.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [1840, 680],
+      "id": "f0a1b2c3-0021-4000-8000-000000000021",
+      "name": "Tool: Info Negócio",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "listar_notificacoes",
+        "description": "Lista as notificações e avisos do cliente, como lembretes de agendamento e confirmações. Use quando o cliente perguntar sobre avisos, lembretes ou notificações.",
+        "method": "GET",
+        "url": "={{ $env.BACKEND_URL }}/api/notifications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "model",
+        "queryParameters": {
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"customerPhone\":{\"type\":\"string\",\"description\":\"Telefone do cliente\"}},\"required\":[\"customerPhone\"]}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [2040, 680],
+      "id": "f0a1b2c3-0022-4000-8000-000000000022",
+      "name": "Tool: Notificações",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "backend-auth",
+          "name": "Backend API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extrair Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Campos": {
+      "main": [
+        [
+          {
+            "node": "Mensagem Válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem Válida?": {
+      "main": [
+        [
+          {
+            "node": "Redis: Carregar Estado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta Não-Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta Não-Texto": {
+      "main": [
+        [
+          {
+            "node": "Enviar: Não-Texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis: Carregar Estado": {
+      "main": [
+        [
+          {
+            "node": "Handoff Ativo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff Ativo?": {
+      "main": [
+        [
+          {
+            "node": "Resposta Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta Handoff": {
+      "main": [
+        [
+          {
+            "node": "Enviar: Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente IA": {
+      "main": [
+        [
+          {
+            "node": "Processar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Redis: Salvar Estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis: Salvar Estado": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memória Redis": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Listar Serviços": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Consultar Horários": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Agendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Meus Agendamentos": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Cancelar Agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Info Negócio": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool: Notificações": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente IA",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "chat-booking-main"
+  },
+  "tags": []
+}

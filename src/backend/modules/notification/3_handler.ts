@@ -37,7 +37,7 @@ export function createNotificationHandler(service: INotificationService): INotif
         return c.json(result.value, 200);
       });
 
-      // POST /send — TENANT, OWNER
+      // POST /send — TENANT, OWNER (cria notificação com status PENDING)
       // biome-ignore lint/suspicious/noExplicitAny: respondError retorna status genérico incompatível com zod-openapi typed routes
       app.openapi(sendNotificationRoute, async (c): Promise<any> => {
         const session = getSession(c);
@@ -46,7 +46,7 @@ export function createNotificationHandler(service: INotificationService): INotif
         }
 
         const body = c.req.valid("json");
-        const result = await service.send(body, session.role, session.tenantId);
+        const result = await service.create(body, session.role, session.tenantId);
 
         if (result.isErr()) return respondError(c, result.error);
         return c.json(result.value, 201);

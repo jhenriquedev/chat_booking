@@ -1,0 +1,2 @@
+ALTER TABLE "chatbooking"."businesses" ADD COLUMN "timezone" varchar(100) DEFAULT 'America/Sao_Paulo' NOT NULL;--> statement-breakpoint
+ALTER TABLE "chatbooking"."schedule_slots" ADD COLUMN "active" boolean DEFAULT true NOT NULL;

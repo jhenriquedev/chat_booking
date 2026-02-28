@@ -36,7 +36,7 @@ export interface IOperatorRepository {
     serviceId: string,
   ): Promise<Result<OperatorServiceRow | null>>;
   createOperatorService(
-    data: Omit<OperatorServiceRow, "id" | "active" | "createdAt">,
+    data: Omit<OperatorServiceRow, "id" | "active" | "createdAt" | "updatedAt">,
   ): Promise<Result<OperatorServiceRow>>;
   softDeleteOperatorService(operatorId: string, serviceId: string): Promise<Result<void>>;
   createWithRolePromotion(
@@ -175,7 +175,7 @@ export function createOperatorRepository(container: Container): IOperatorReposit
       return R.fromAsync(async () => {
         await db
           .update(operatorServices)
-          .set({ active: false })
+          .set({ active: false, updatedAt: sql`now()` })
           .where(
             and(
               eq(operatorServices.operatorId, operatorId),

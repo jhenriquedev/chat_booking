@@ -75,7 +75,9 @@ export interface IAppointmentRepository {
     } | null>
   >;
 
-  findBusinessById(businessId: string): Promise<Result<{ id: string; tenantId: string } | null>>;
+  findBusinessById(
+    businessId: string,
+  ): Promise<Result<{ id: string; tenantId: string; timezone: string } | null>>;
 
   createWithSlotBooking(
     data: Omit<
@@ -185,7 +187,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
             status: scheduleSlots.status,
           })
           .from(scheduleSlots)
-          .where(eq(scheduleSlots.id, slotId))
+          .where(and(eq(scheduleSlots.id, slotId), eq(scheduleSlots.active, true)))
           .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
@@ -267,6 +269,7 @@ export function createAppointmentRepository(container: Container): IAppointmentR
           .select({
             id: businesses.id,
             tenantId: businesses.tenantId,
+            timezone: businesses.timezone,
           })
           .from(businesses)
           .where(eq(businesses.id, businessId))

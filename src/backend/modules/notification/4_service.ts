@@ -36,7 +36,7 @@ export interface INotificationService {
     callerTenantId: string | null,
   ): Promise<Result<NotificationProfile>>;
 
-  send(
+  create(
     input: SendNotificationRequest,
     callerRole: Role,
     callerTenantId: string | null,
@@ -171,7 +171,7 @@ export function createNotificationService(repo: INotificationRepository): INotif
       return R.ok(toProfile(result.value));
     },
 
-    async send(input, callerRole, callerTenantId) {
+    async create(input, callerRole, callerTenantId) {
       const apptResult = await repo.findAppointmentById(input.appointmentId);
       if (apptResult.isErr()) return R.fail(apptResult.error);
       if (!apptResult.value) {

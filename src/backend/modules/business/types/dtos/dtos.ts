@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "../../../../shared/dtos.js";
+import { cnpjSchema, paginationSchema, timezoneSchema } from "../../../../shared/dtos.js";
 import { businessHoursSchema, socialLinksSchema } from "../entities/entities.js";
 
 export { errorResponseSchema, messageResponseSchema } from "../../../../shared/dtos.js";
@@ -23,6 +23,7 @@ export const businessProfileSchema = z.object({
   coverUrl: z.string().nullable(),
   businessHours: businessHoursSchema,
   socialLinks: socialLinksSchema,
+  timezone: z.string(),
   active: z.boolean(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -44,7 +45,7 @@ export const createBusinessRequestSchema = z.object({
     ),
   phone: z.string().max(20).optional(),
   email: z.string().email("E-mail inválido").max(255).optional(),
-  cnpj: z.string().max(18).optional(),
+  cnpj: cnpjSchema.optional(),
   website: z.string().max(500).optional(),
   address: z.string().max(1000).optional(),
   description: z.string().max(2000).optional(),
@@ -52,6 +53,7 @@ export const createBusinessRequestSchema = z.object({
   coverUrl: z.string().max(2000).optional(),
   businessHours: businessHoursSchema.optional(),
   socialLinks: socialLinksSchema.optional(),
+  timezone: timezoneSchema.optional(),
   /** Apenas OWNER pode informar o tenantId; TENANT usa o próprio */
   tenantId: z.string().uuid().optional(),
 });
@@ -73,7 +75,7 @@ export const updateBusinessRequestSchema = z.object({
     .optional(),
   phone: z.string().max(20).nullable().optional(),
   email: z.string().email("E-mail inválido").max(255).nullable().optional(),
-  cnpj: z.string().max(18).nullable().optional(),
+  cnpj: cnpjSchema.nullable().optional(),
   website: z.string().max(500).nullable().optional(),
   address: z.string().max(1000).nullable().optional(),
   description: z.string().max(2000).nullable().optional(),
@@ -81,6 +83,7 @@ export const updateBusinessRequestSchema = z.object({
   coverUrl: z.string().max(2000).nullable().optional(),
   businessHours: businessHoursSchema.optional(),
   socialLinks: socialLinksSchema.optional(),
+  timezone: timezoneSchema.optional(),
 });
 export type UpdateBusinessRequest = z.infer<typeof updateBusinessRequestSchema>;
 

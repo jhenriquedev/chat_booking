@@ -36,6 +36,8 @@ export const businesses = chatBookingSchema.table(
     businessHours: jsonb("business_hours"),
     /** URLs de redes sociais (JSONB) */
     socialLinks: jsonb("social_links"),
+    /** Fuso horário IANA do negócio — ex: "America/Sao_Paulo" */
+    timezone: varchar("timezone", { length: 100 }).notNull().default("America/Sao_Paulo"),
     /** Soft delete — false oculta o negócio para novos agendamentos */
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

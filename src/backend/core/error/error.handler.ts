@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { ZodError } from "zod";
+import { logger } from "../logger/logger.js";
 import type { AppError } from "../result/result.js";
 
 type ErrorResponse = {
@@ -30,6 +31,9 @@ const STATUS_MAP: Record<string, ContentfulStatusCode> = {
   BUSINESS_RULE_VIOLATION: 422,
   ALREADY_INACTIVE: 409,
 
+  // Rate limiting
+  RATE_LIMITED: 429,
+
   // Infraestrutura
   DB_QUERY_FAILED: 500,
   EXTERNAL_SERVICE_ERROR: 502,
@@ -38,20 +42,9 @@ const STATUS_MAP: Record<string, ContentfulStatusCode> = {
 /**
  * Mapeia um AppError.code para o HTTP status correspondente.
  * Códigos não mapeados retornam 500.
- *
- * Convenção: se o code contém "NOT_FOUND" retorna 404,
- * se contém "ALREADY_EXISTS" retorna 409, etc.
  */
 const resolveStatus = (code: string): ContentfulStatusCode => {
-  if (STATUS_MAP[code]) return STATUS_MAP[code];
-
-  if (code.includes("NOT_FOUND")) return 404;
-  if (code.includes("ALREADY_EXISTS") || code.includes("CONFLICT")) return 409;
-  if (code.includes("UNAUTHORIZED") || code.includes("TOKEN")) return 401;
-  if (code.includes("FORBIDDEN")) return 403;
-  if (code.includes("VALIDATION")) return 422;
-
-  return 500;
+  return STATUS_MAP[code] ?? 500;
 };
 
 /**
@@ -114,7 +107,13 @@ export const errorHandler = (err: Error, c: Context) => {
   }
 
   // Erro genérico
-  console.error("[UNHANDLED ERROR]", err);
+  logger.error("Unhandled error", {
+    name: err.name,
+    message: err.message,
+    stack: err.stack,
+    path: c.req.path,
+    method: c.req.method,
+  });
   const body: ErrorResponse = {
     error: {
       code: "INTERNAL_ERROR",

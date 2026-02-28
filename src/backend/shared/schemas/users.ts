@@ -1,4 +1,4 @@
-import { boolean, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, char, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { chatBookingSchema, userRoleEnum } from "../schema.js";
 
 /** Usuários do sistema — qualquer pessoa que interage com a plataforma */
@@ -10,7 +10,7 @@ export const users = chatBookingSchema.table("users", {
   /** Telefone em formato internacional — ex: +5511999999999 */
   phone: varchar("phone", { length: 20 }).notNull(),
   /** Hash do telefone para busca rápida e segura (unique) */
-  phoneHash: varchar("phone_hash", { length: 128 }).notNull().unique(),
+  phoneHash: char("phone_hash", { length: 64 }).notNull().unique(),
   /** E-mail opcional para notificações */
   email: varchar("email", { length: 255 }),
   /** Papel no sistema: USER, OPERATOR, TENANT ou OWNER */

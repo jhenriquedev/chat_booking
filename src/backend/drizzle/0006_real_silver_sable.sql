@@ -1,0 +1,1 @@
+ALTER TABLE "chatbooking"."users" ALTER COLUMN "phone_hash" SET DATA TYPE char(64);

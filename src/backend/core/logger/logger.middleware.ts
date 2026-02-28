@@ -2,30 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { Context, Next } from "hono";
 import { createMiddleware } from "hono/factory";
 import { type SessionPayload, getSession } from "../session/session.guard.js";
+import { logger } from "./logger.js";
 
 const CORRELATION_HEADER = "X-Correlation-ID";
-
-type LogEntry = {
-  correlationId: string;
-  timestamp: string;
-  method: string;
-  path: string;
-  status: number;
-  duration: number;
-  userId?: string;
-  role?: string;
-  tenantId?: string;
-  userAgent?: string;
-};
-
-const formatLog = (entry: LogEntry): string => {
-  const user = entry.userId ? `[${entry.role}:${entry.userId}]` : "[anonymous]";
-  const tenant = entry.tenantId ? `[tenant:${entry.tenantId}]` : "";
-  const status =
-    entry.status >= 400 ? `\x1b[31m${entry.status}\x1b[0m` : `\x1b[32m${entry.status}\x1b[0m`;
-
-  return `${entry.timestamp} [${entry.correlationId}] ${entry.method} ${entry.path} ${status} ${entry.duration}ms ${user} ${tenant}`.trim();
-};
 
 /**
  * Extrai o correlation ID do contexto Hono.
@@ -67,18 +46,21 @@ export const loggerMiddleware = createMiddleware(async (c: Context, next: Next) 
     // rota pública, sem sessão
   }
 
-  const entry: LogEntry = {
+  const method = c.req.method;
+  const path = c.req.path;
+  const status = c.res.status;
+
+  const level = status >= 500 ? "error" : status >= 400 ? "warn" : "info";
+
+  logger[level](`${method} ${path} ${status} ${duration}ms`, {
     correlationId,
-    timestamp: new Date().toISOString(),
-    method: c.req.method,
-    path: c.req.path,
-    status: c.res.status,
+    method,
+    path,
+    status,
     duration,
     userId: session.sub,
     role: session.role,
     tenantId: session.tenantId ?? undefined,
     userAgent: c.req.header("user-agent"),
-  };
-
-  console.log(formatLog(entry));
+  });
 });

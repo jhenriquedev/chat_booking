@@ -1,8 +1,13 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Container } from "../../../core/container/container.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
-import { availabilityRules, operators, scheduleSlots } from "../../../shared/schemas/index.js";
+import {
+  availabilityRules,
+  businesses,
+  operators,
+  scheduleSlots,
+} from "../../../shared/schemas/index.js";
 import type { ScheduleSlotRow } from "./types/models/models.js";
 
 export interface IScheduleRepository {
@@ -12,15 +17,20 @@ export interface IScheduleRepository {
     date: string,
     status?: string,
   ): Promise<Result<ScheduleSlotRow[]>>;
-  findExistingSlots(operatorId: string, date: string): Promise<Result<ScheduleSlotRow[]>>;
+  findExistingSlotsByDateRange(
+    operatorId: string,
+    dates: string[],
+  ): Promise<Result<ScheduleSlotRow[]>>;
   createMany(
-    slots: Omit<ScheduleSlotRow, "id" | "status" | "createdAt" | "updatedAt">[],
+    slots: Omit<ScheduleSlotRow, "id" | "status" | "active" | "createdAt" | "updatedAt">[],
   ): Promise<Result<number>>;
   updateStatus(id: string, status: "AVAILABLE" | "BLOCKED"): Promise<Result<ScheduleSlotRow>>;
   deleteSlot(id: string): Promise<Result<void>>;
   findOperatorById(
     operatorId: string,
-  ): Promise<Result<{ id: string; userId: string; tenantId: string } | null>>;
+  ): Promise<
+    Result<{ id: string; userId: string; tenantId: string; businessTimezone: string } | null>
+  >;
   findActiveAvailabilityRules(
     operatorId: string,
   ): Promise<Result<{ dayOfWeek: number; startTime: string; endTime: string }[]>>;
@@ -32,14 +42,22 @@ export function createScheduleRepository(container: Container): IScheduleReposit
   return {
     async findById(id) {
       return R.fromAsync(async () => {
-        const rows = await db.select().from(scheduleSlots).where(eq(scheduleSlots.id, id)).limit(1);
+        const rows = await db
+          .select()
+          .from(scheduleSlots)
+          .where(and(eq(scheduleSlots.id, id), eq(scheduleSlots.active, true)))
+          .limit(1);
         return rows[0] ?? null;
       }, "DB_QUERY_FAILED");
     },
 
     async findByOperatorAndDate(operatorId, date, status) {
       return R.fromAsync(async () => {
-        const conditions = [eq(scheduleSlots.operatorId, operatorId), eq(scheduleSlots.date, date)];
+        const conditions = [
+          eq(scheduleSlots.operatorId, operatorId),
+          eq(scheduleSlots.date, date),
+          eq(scheduleSlots.active, true),
+        ];
         if (status) {
           conditions.push(eq(scheduleSlots.status, status as "AVAILABLE" | "BOOKED" | "BLOCKED"));
         }
@@ -52,13 +70,20 @@ export function createScheduleRepository(container: Container): IScheduleReposit
       }, "DB_QUERY_FAILED");
     },
 
-    async findExistingSlots(operatorId, date) {
+    async findExistingSlotsByDateRange(operatorId, dates) {
       return R.fromAsync(async () => {
+        if (dates.length === 0) return [];
         return db
           .select()
           .from(scheduleSlots)
-          .where(and(eq(scheduleSlots.operatorId, operatorId), eq(scheduleSlots.date, date)))
-          .orderBy(scheduleSlots.startTime);
+          .where(
+            and(
+              eq(scheduleSlots.operatorId, operatorId),
+              inArray(scheduleSlots.date, dates),
+              eq(scheduleSlots.active, true),
+            ),
+          )
+          .orderBy(scheduleSlots.date, scheduleSlots.startTime);
       }, "DB_QUERY_FAILED");
     },
 
@@ -96,7 +121,10 @@ export function createScheduleRepository(container: Container): IScheduleReposit
 
     async deleteSlot(id) {
       return R.fromAsync(async () => {
-        await db.delete(scheduleSlots).where(eq(scheduleSlots.id, id));
+        await db
+          .update(scheduleSlots)
+          .set({ active: false, updatedAt: sql`now()` })
+          .where(eq(scheduleSlots.id, id));
       }, "DB_QUERY_FAILED");
     },
 
@@ -107,8 +135,10 @@ export function createScheduleRepository(container: Container): IScheduleReposit
             id: operators.id,
             userId: operators.userId,
             tenantId: operators.tenantId,
+            businessTimezone: businesses.timezone,
           })
           .from(operators)
+          .innerJoin(businesses, eq(operators.businessId, businesses.id))
           .where(and(eq(operators.id, operatorId), eq(operators.active, true)))
           .limit(1);
         return rows[0] ?? null;

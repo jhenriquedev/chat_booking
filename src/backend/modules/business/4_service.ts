@@ -58,6 +58,7 @@ function toProfile(row: BusinessRow): BusinessProfile {
     coverUrl: row.coverUrl,
     businessHours: row.businessHours,
     socialLinks: row.socialLinks,
+    timezone: row.timezone,
     active: row.active,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -108,6 +109,7 @@ export function createBusinessService(repository: IBusinessRepository): IBusines
         coverUrl: input.coverUrl ?? null,
         businessHours: input.businessHours ?? null,
         socialLinks: input.socialLinks ?? null,
+        timezone: input.timezone ?? "America/Sao_Paulo",
       });
       if (createResult.isErr()) return R.fail(createResult.error);
 

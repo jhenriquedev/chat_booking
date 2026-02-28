@@ -1,4 +1,5 @@
-import { boolean, index, integer, time, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, check, index, integer, time, timestamp, uuid } from "drizzle-orm/pg-core";
 import { chatBookingSchema } from "../schema.js";
 import { operators } from "./operators.js";
 
@@ -23,5 +24,8 @@ export const availabilityRules = chatBookingSchema.table(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("idx_availability_rules_operator_id").on(t.operatorId)],
+  (t) => [
+    index("idx_availability_rules_operator_id").on(t.operatorId),
+    check("chk_day_of_week", sql`${t.dayOfWeek} >= 0 AND ${t.dayOfWeek} <= 6`),
+  ],
 );

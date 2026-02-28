@@ -17,6 +17,7 @@ export type BusinessRow = {
   coverUrl: string | null;
   businessHours: z.infer<typeof businessHoursSchema>;
   socialLinks: z.infer<typeof socialLinksSchema>;
+  timezone: string;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;

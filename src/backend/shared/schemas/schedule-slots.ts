@@ -1,4 +1,4 @@
-import { date, index, time, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, time, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { chatBookingSchema, slotStatusEnum } from "../schema.js";
 import { operators } from "./operators.js";
 
@@ -20,6 +20,8 @@ export const scheduleSlots = chatBookingSchema.table(
     endTime: time("end_time").notNull(),
     /** Status: AVAILABLE (livre), BOOKED (ocupado), BLOCKED (bloqueado manualmente) */
     status: slotStatusEnum("status").notNull().default("AVAILABLE"),
+    /** Soft delete — false oculta o slot sem remover fisicamente */
+    active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

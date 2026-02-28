@@ -1,4 +1,13 @@
-import { boolean, index, integer, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  index,
+  integer,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { chatBookingSchema } from "../schema.js";
 import { businesses } from "./businesses.js";
 import { services } from "./services.js";
@@ -59,9 +68,13 @@ export const operatorServices = chatBookingSchema.table(
     /** Soft delete — false desvincula o serviço do operador */
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("idx_operator_services_operator_id").on(t.operatorId),
     index("idx_operator_services_service_id").on(t.serviceId),
+    uniqueIndex("uq_operator_services_active")
+      .on(t.operatorId, t.serviceId)
+      .where(sql`${t.active} = true`),
   ],
 );

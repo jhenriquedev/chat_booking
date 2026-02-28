@@ -1,4 +1,4 @@
-import { todayLocalYmd } from "../../../core/date/date.utils.js";
+import { todayYmd } from "../../../core/date/date.utils.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
 import type { Role } from "../../../core/session/session.guard.js";
@@ -97,7 +97,7 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
     callerRole: Role,
     callerTenantId: string | null,
     callerUserId?: string,
-  ): Promise<Result<{ id: string; userId: string; tenantId: string }>> {
+  ): Promise<Result<{ id: string; userId: string; tenantId: string; businessTimezone: string }>> {
     const operatorResult = await repository.findOperatorById(operatorId);
     if (operatorResult.isErr()) return R.fail(operatorResult.error);
     if (!operatorResult.value) {
@@ -123,8 +123,8 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
       const accessCheck = await checkOperatorAccess(input.operatorId, callerRole, callerTenantId);
       if (accessCheck.isErr()) return R.fail(accessCheck.error);
 
-      // Valida que dateFrom não é no passado (respeita TZ do servidor)
-      const today = todayLocalYmd();
+      // Valida que dateFrom não é no passado (usa timezone do business)
+      const today = todayYmd(accessCheck.value.businessTimezone);
       if (input.dateFrom < today) {
         return R.fail({
           code: "VALIDATION_ERROR",
@@ -160,23 +160,42 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
         rulesByDay.set(rule.dayOfWeek, existing);
       }
 
-      let totalGenerated = 0;
+      // Filtra apenas datas que possuem regras de disponibilidade
+      const relevantDates = dates.filter((d) => rulesByDay.has(getDayOfWeek(d)));
+      if (relevantDates.length === 0) {
+        return R.ok({ generated: 0, message: "0 slots gerados com sucesso" });
+      }
 
-      // Para cada data no range
-      for (const date of dates) {
-        const dayOfWeek = getDayOfWeek(date);
-        const dayRules = rulesByDay.get(dayOfWeek);
+      // Busca todos os slots existentes do range em uma única query
+      const existingResult = await repository.findExistingSlotsByDateRange(
+        input.operatorId,
+        relevantDates,
+      );
+      if (existingResult.isErr()) return R.fail(existingResult.error);
+
+      // Agrupa slots existentes por data para lookup rápido
+      const existingByDate = new Map<string, Set<string>>();
+      for (const slot of existingResult.value) {
+        let dateSet = existingByDate.get(slot.date);
+        if (!dateSet) {
+          dateSet = new Set();
+          existingByDate.set(slot.date, dateSet);
+        }
+        dateSet.add(`${slot.startTime}-${slot.endTime}`);
+      }
+
+      // Gera todos os novos slots em memória
+      const allNewSlots: {
+        operatorId: string;
+        date: string;
+        startTime: string;
+        endTime: string;
+      }[] = [];
+
+      for (const date of relevantDates) {
+        const dayRules = rulesByDay.get(getDayOfWeek(date));
         if (!dayRules) continue;
-
-        // Busca slots já existentes para evitar duplicados
-        const existingResult = await repository.findExistingSlots(input.operatorId, date);
-        if (existingResult.isErr()) return R.fail(existingResult.error);
-
-        const existingSet = new Set(existingResult.value.map((s) => `${s.startTime}-${s.endTime}`));
-
-        // Gera slots para cada regra
-        const newSlots: { operatorId: string; date: string; startTime: string; endTime: string }[] =
-          [];
+        const existingSet = existingByDate.get(date) ?? new Set();
 
         for (const rule of dayRules) {
           let cursor = rule.startTime;
@@ -186,7 +205,7 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
 
             const key = `${cursor}-${slotEnd}`;
             if (!existingSet.has(key)) {
-              newSlots.push({
+              allNewSlots.push({
                 operatorId: input.operatorId,
                 date,
                 startTime: cursor,
@@ -198,18 +217,19 @@ export function createScheduleService(repository: IScheduleRepository): ISchedul
             cursor = slotEnd;
           }
         }
-
-        // Bulk insert dos novos slots
-        if (newSlots.length > 0) {
-          const insertResult = await repository.createMany(newSlots);
-          if (insertResult.isErr()) return R.fail(insertResult.error);
-          totalGenerated += insertResult.value;
-        }
       }
 
+      // Bulk insert único de todos os slots
+      if (allNewSlots.length === 0) {
+        return R.ok({ generated: 0, message: "0 slots gerados com sucesso" });
+      }
+
+      const insertResult = await repository.createMany(allNewSlots);
+      if (insertResult.isErr()) return R.fail(insertResult.error);
+
       return R.ok({
-        generated: totalGenerated,
-        message: `${totalGenerated} slots gerados com sucesso`,
+        generated: insertResult.value,
+        message: `${insertResult.value} slots gerados com sucesso`,
       });
     },
 

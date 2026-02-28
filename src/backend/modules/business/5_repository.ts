@@ -92,6 +92,7 @@ export function createBusinessRepository(container: Container): IBusinessReposit
             coverUrl: data.coverUrl,
             businessHours: data.businessHours,
             socialLinks: data.socialLinks,
+            timezone: data.timezone,
           })
           .returning();
         if (!rows[0]) throw new Error("Insert não retornou registro");

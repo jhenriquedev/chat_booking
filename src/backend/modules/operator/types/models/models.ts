@@ -20,4 +20,5 @@ export type OperatorServiceRow = {
   durationMinutes: number | null;
   active: boolean;
   createdAt: Date;
+  updatedAt: Date;
 };

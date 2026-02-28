@@ -6,6 +6,7 @@ export type ScheduleSlotRow = {
   startTime: string;
   endTime: string;
   status: "AVAILABLE" | "BOOKED" | "BLOCKED";
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 };

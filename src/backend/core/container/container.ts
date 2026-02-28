@@ -1,6 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Config } from "../config/config.js";
 import type { db } from "../db/connection.js";
+import type { redis } from "../redis/connection.js";
 
 /**
  * Container de dependências compartilhadas.
@@ -8,14 +9,15 @@ import type { db } from "../db/connection.js";
  */
 export type Container = {
   db: typeof db;
+  redis: typeof redis;
   config: Config;
 };
 
 /**
- * Assinatura de criação de um módulo.
- * Todo módulo (user, tenant, auth, etc.) deve exportar uma função com essa assinatura.
+ * Assinatura de criação de um módulo ou feature.
+ * Todo módulo (1_module.ts) e feature (1_feature.ts) deve exportar
+ * uma função com essa assinatura.
  *
- * Padrão no 1_module.ts:
  * ```ts
  * export const createUserModule: ModuleFactory = (container) => {
  *   const repository = new UserRepository(container.db);
@@ -29,25 +31,6 @@ export type Container = {
  * ```
  */
 export type ModuleFactory = (container: Container) => OpenAPIHono;
-
-/**
- * Assinatura de criação de uma feature (sub-módulo).
- * Usada dentro de módulos compostos como booking/.
- *
- * Padrão no 1_feature.ts:
- * ```ts
- * export const createAvailabilityFeature: FeatureFactory = (container) => {
- *   const repository = new AvailabilityRepository(container.db);
- *   const service = new AvailabilityService(repository);
- *   const handler = new AvailabilityHandler(service);
- *
- *   const app = new OpenAPIHono();
- *   registerAvailabilityRoutes(app, handler);
- *   return app;
- * };
- * ```
- */
-export type FeatureFactory = (container: Container) => OpenAPIHono;
 
 /**
  * Registra módulos no app principal.

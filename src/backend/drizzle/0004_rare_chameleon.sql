@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "uq_operator_services_active" ON "chatbooking"."operator_services" USING btree ("operator_id","service_id") WHERE "chatbooking"."operator_services"."active" = true;

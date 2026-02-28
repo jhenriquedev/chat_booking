@@ -128,13 +128,13 @@ export function createTenantService(repository: ITenantRepository): ITenantServi
       const updateResult = await repository.update(id, input);
       if (updateResult.isErr()) return R.fail(updateResult.error);
 
-      // Busca com JOIN atualizado
-      const tenantResult = await repository.findById(id);
-      if (tenantResult.isErr()) return R.fail(tenantResult.error);
-      if (!tenantResult.value)
-        return R.fail({ code: "NOT_FOUND", message: "Tenant não encontrado" });
-
-      return R.ok(toProfile(tenantResult.value));
+      return R.ok(
+        toProfile({
+          ...updateResult.value,
+          userName: findResult.value.userName,
+          userPhone: findResult.value.userPhone,
+        }),
+      );
     },
 
     async delete(id) {

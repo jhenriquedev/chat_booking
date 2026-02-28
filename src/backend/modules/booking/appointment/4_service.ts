@@ -1,3 +1,4 @@
+import { localToUtc } from "../../../core/date/date.utils.js";
 import type { Result } from "../../../core/result/result.js";
 import { Result as R } from "../../../core/result/result.js";
 import type { Role } from "../../../core/session/session.guard.js";
@@ -144,6 +145,15 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
 
       const operator = operatorResult.value;
 
+      // Busca o business para obter o timezone
+      const businessResult = await repository.findBusinessById(operator.businessId);
+      if (businessResult.isErr()) return R.fail(businessResult.error);
+      if (!businessResult.value) {
+        return R.fail({ code: "NOT_FOUND", message: "Business não encontrado" });
+      }
+
+      const business = businessResult.value;
+
       // Impede operador de se auto-agendar
       if (operator.userId === callerUserId) {
         return R.fail({
@@ -189,8 +199,8 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
       const durationMinutes = opService.durationMinutes ?? service.durationMinutes;
       const priceCents = opService.priceCents ?? service.priceCents;
 
-      // Computa scheduledAt a partir do slot
-      const scheduledAt = new Date(`${slot.date}T${slot.startTime}Z`);
+      // Computa scheduledAt convertendo horário local do business para UTC
+      const scheduledAt = localToUtc(slot.date, slot.startTime, business.timezone);
 
       // Cria o appointment e marca slot como BOOKED em transação atômica
       const createResult = await repository.createWithSlotBooking(
@@ -281,6 +291,10 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
     },
 
     async confirm(id, callerRole, callerUserId, callerTenantId) {
+      if (callerRole === "USER") {
+        return R.fail({ code: "FORBIDDEN", message: "Permissão insuficiente" });
+      }
+
       const findResult = await repository.findById(id);
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value) {
@@ -353,6 +367,10 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
     },
 
     async complete(id, callerRole, callerUserId, callerTenantId) {
+      if (callerRole === "USER") {
+        return R.fail({ code: "FORBIDDEN", message: "Permissão insuficiente" });
+      }
+
       const findResult = await repository.findById(id);
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value) {
@@ -385,6 +403,10 @@ export function createAppointmentService(repository: IAppointmentRepository): IA
     },
 
     async noShow(id, callerRole, callerUserId, callerTenantId) {
+      if (callerRole === "USER") {
+        return R.fail({ code: "FORBIDDEN", message: "Permissão insuficiente" });
+      }
+
       const findResult = await repository.findById(id);
       if (findResult.isErr()) return R.fail(findResult.error);
       if (!findResult.value) {
