@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Configuração Necessária\n\n### Variáveis de Ambiente (n8n)\n- `BACKEND_URL` — URL base da API (ex: http://localhost:3000)\n- `EVOLUTION_API_URL` — URL da Evolution API (ex: http://localhost:8080)\n- `BUSINESS_ID` — ID do negócio padrão\n- `BUSINESS_SLUG` — Slug do negócio padrão\n\n### Credenciais (n8n)\n1. **Redis** — conexão Redis (host, porta, senha)\n2. **OpenAI** — API key da OpenAI\n3. **Backend API** — HTTP Header Auth (Authorization: Bearer TOKEN)\n4. **Evolution API** — HTTP Header Auth (apikey: CHAVE)\n\n### Webhook\nConfigure a Evolution API para enviar eventos `messages.upsert` para:\n`POST {N8N_URL}/webhook/evolution`",
+        "content": "## Configuração Necessária\n\n### URLs (hardcoded nos nós)\n- Backend: http://localhost:3000\n- Evolution API: http://localhost:8080\n- BUSINESS_ID: trocar no system prompt do Agente IA\n\n### Credenciais (n8n)\n1. **Redis** — host: localhost, porta: 6379\n2. **OpenAI** — API key\n3. **Evolution API** — HTTP Header Auth:\n   - Name: apikey\n   - Value: chave da Evolution API\n\n### Autenticação Backend\nJWT dinâmico via POST /api/auth/login.\nO workflow faz login automático com o phoneHash\ndo cliente e usa o accessToken nas tools.\n\n### Webhook\nEvolution API → eventos messages.upsert para:\nPOST {N8N_URL}/webhook/evolution",
         "height": 520,
         "width": 420,
         "color": 4
@@ -110,7 +110,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.instance }}",
+        "url": "=http://localhost:8080/message/sendText/{{ $json.instance }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -189,7 +189,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.instance }}",
+        "url": "=http://localhost:8080/message/sendText/{{ $json.instance }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -214,7 +214,7 @@
         "text": "={{ $('Extrair Campos').first().json.messageText }}",
         "hasOutputParser": false,
         "options": {
-          "systemMessage": "Você é o assistente virtual de atendimento via WhatsApp. Seu papel é ajudar clientes com agendamentos, informações sobre serviços e dados do negócio.\n\nCAPACIDADES (use as tools disponíveis):\n- Listar serviços disponíveis com preços e duração\n- Consultar horários disponíveis para uma data\n- Realizar agendamentos\n- Listar agendamentos existentes do cliente\n- Cancelar agendamentos\n- Buscar informações do negócio (endereço, horário, contato)\n- Consultar notificações do cliente\n\nREGRAS:\n1. Responda SEMPRE em português brasileiro, de forma simpática, direta e breve. É WhatsApp, não email.\n2. NUNCA invente dados. Use SOMENTE informações retornadas pelas tools.\n3. Se o cliente pedir algo fora do escopo, diga educadamente que só pode ajudar com agendamentos e informações do negócio.\n4. Se o cliente pedir para falar com um humano ou atendente, diga que vai direcionar para um atendente e inclua a tag [HANDOFF] no final da sua resposta.\n5. NÃO use formatação markdown (negrito, itálico, listas com asterisco). Use texto simples adequado para WhatsApp.\n6. Use emojis com moderação.\n7. Quando for agendar, colete e confirme: serviço, data, horário. Só finalize após confirmação do cliente.\n8. Ao listar horários, apresente de forma organizada e fácil de ler.\n9. Se uma tool retornar erro, informe o cliente de forma amigável sem expor detalhes técnicos.\n10. O ID do negócio padrão é: {{ $env.BUSINESS_ID }}\n\nINFORMAÇÕES DO CLIENTE:\n- Nome: {{ $('Extrair Campos').first().json.pushName }}\n- Telefone: {{ $('Extrair Campos').first().json.phone }}",
+          "systemMessage": "Você é o assistente virtual de atendimento via WhatsApp. Seu papel é ajudar clientes com agendamentos, informações sobre serviços e dados do negócio.\n\nCAPACIDADES (use as tools disponíveis):\n- Listar serviços disponíveis com preços e duração\n- Consultar horários disponíveis para uma data\n- Realizar agendamentos\n- Listar agendamentos existentes do cliente\n- Cancelar agendamentos\n- Buscar informações do negócio (endereço, horário, contato)\n- Consultar notificações do cliente\n\nREGRAS:\n1. Responda SEMPRE em português brasileiro, de forma simpática, direta e breve. É WhatsApp, não email.\n2. NUNCA invente dados. Use SOMENTE informações retornadas pelas tools.\n3. Se o cliente pedir algo fora do escopo, diga educadamente que só pode ajudar com agendamentos e informações do negócio.\n4. Se o cliente pedir para falar com um humano ou atendente, diga que vai direcionar para um atendente e inclua a tag [HANDOFF] no final da sua resposta.\n5. NÃO use formatação markdown (negrito, itálico, listas com asterisco). Use texto simples adequado para WhatsApp.\n6. Use emojis com moderação.\n7. Quando for agendar, colete e confirme: serviço, data, horário. Só finalize após confirmação do cliente.\n8. Ao listar horários, apresente de forma organizada e fácil de ler.\n9. Se uma tool retornar erro, informe o cliente de forma amigável sem expor detalhes técnicos.\n10. O ID do negócio padrão é: TROCAR_PELO_BUSINESS_ID\n\nINFORMAÇÕES DO CLIENTE:\n- Nome: {{ $('Extrair Campos').first().json.pushName }}\n- Telefone: {{ $('Extrair Campos').first().json.phone }}",
           "maxIterations": 10
         }
       },
@@ -258,7 +258,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $('Processar Resposta').first().json.instance }}",
+        "url": "=http://localhost:8080/message/sendText/{{ $('Processar Resposta').first().json.instance }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -320,9 +320,17 @@
         "name": "listar_servicos",
         "description": "Lista todos os serviços disponíveis do negócio, incluindo nome, preço e duração. Use quando o cliente perguntar quais serviços estão disponíveis, quanto custa, ou o que pode ser agendado.",
         "method": "GET",
-        "url": "={{ $env.BACKEND_URL }}/api/booking/services",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/services",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "sendQuery": true,
         "specifyQuery": "model",
         "queryParameters": {
@@ -333,48 +341,50 @@
       "typeVersion": 1.1,
       "position": [840, 680],
       "id": "f0a1b2c3-0016-4000-8000-000000000016",
-      "name": "Tool: Listar Serviços",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
-    },
+      "name": "Tool: Listar Serviços"    },
     {
       "parameters": {
         "name": "consultar_horarios",
-        "description": "Consulta os horários disponíveis para agendamento em uma data específica. Retorna os slots livres com hora de início e fim. Use quando o cliente quiser saber quais horários estão disponíveis.",
+        "description": "Consulta os horários (slots) disponíveis para agendamento em uma data específica. Retorna os slots livres com hora de início e fim. Use quando o cliente quiser saber quais horários estão disponíveis. Requer operatorId e date.",
         "method": "GET",
-        "url": "={{ $env.BACKEND_URL }}/api/booking/availability",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/schedule",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "sendQuery": true,
         "specifyQuery": "model",
         "queryParameters": {
-          "parametersJson": "{\"type\":\"object\",\"properties\":{\"businessId\":{\"type\":\"string\",\"description\":\"ID do negócio\"},\"serviceId\":{\"type\":\"string\",\"description\":\"ID do serviço desejado\"},\"date\":{\"type\":\"string\",\"description\":\"Data no formato YYYY-MM-DD\"}},\"required\":[\"businessId\",\"serviceId\",\"date\"]}"
+          "parametersJson": "{\"type\":\"object\",\"properties\":{\"operatorId\":{\"type\":\"string\",\"description\":\"ID do operador/profissional\"},\"date\":{\"type\":\"string\",\"description\":\"Data no formato YYYY-MM-DD\"}},\"required\":[\"operatorId\",\"date\"]}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
       "typeVersion": 1.1,
       "position": [1040, 680],
       "id": "f0a1b2c3-0017-4000-8000-000000000017",
-      "name": "Tool: Consultar Horários",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
-    },
+      "name": "Tool: Consultar Horários"    },
     {
       "parameters": {
         "name": "agendar",
         "description": "Cria um novo agendamento para o cliente. Use SOMENTE após confirmar com o cliente: serviço, data e horário escolhido. Precisa do slotId obtido da consulta de horários.",
         "method": "POST",
-        "url": "={{ $env.BACKEND_URL }}/api/booking/appointments",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/appointments",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "model",
         "bodyParameters": {
@@ -385,22 +395,23 @@
       "typeVersion": 1.1,
       "position": [1240, 680],
       "id": "f0a1b2c3-0018-4000-8000-000000000018",
-      "name": "Tool: Agendar",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
-    },
+      "name": "Tool: Agendar"    },
     {
       "parameters": {
         "name": "meus_agendamentos",
         "description": "Lista os agendamentos existentes do cliente. Use quando o cliente quiser ver, consultar ou verificar seus agendamentos.",
         "method": "GET",
-        "url": "={{ $env.BACKEND_URL }}/api/booking/appointments",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/appointments",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "sendQuery": true,
         "specifyQuery": "model",
         "queryParameters": {
@@ -411,22 +422,23 @@
       "typeVersion": 1.1,
       "position": [1440, 680],
       "id": "f0a1b2c3-0019-4000-8000-000000000019",
-      "name": "Tool: Meus Agendamentos",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
-    },
+      "name": "Tool: Meus Agendamentos"    },
     {
       "parameters": {
         "name": "cancelar_agendamento",
         "description": "Cancela um agendamento existente do cliente. Use quando o cliente quiser cancelar. Precisa do ID do agendamento (obtido via meus_agendamentos).",
         "method": "PATCH",
-        "url": "={{ $env.BACKEND_URL }}/api/booking/appointments/{appointmentId}/cancel",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/appointments/{appointmentId}/cancel",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "placeholderDefinitions": {
           "values": [
             {
@@ -446,22 +458,23 @@
       "typeVersion": 1.1,
       "position": [1640, 680],
       "id": "f0a1b2c3-0020-4000-8000-000000000020",
-      "name": "Tool: Cancelar Agendamento",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
-    },
+      "name": "Tool: Cancelar Agendamento"    },
     {
       "parameters": {
         "name": "info_negocio",
         "description": "Busca informações do negócio como endereço, horário de funcionamento, telefone e descrição. Use quando o cliente perguntar sobre o local, endereço, como chegar, ou horário de funcionamento.",
         "method": "GET",
-        "url": "={{ $env.BACKEND_URL }}/api/businesses/{slug}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/businesses/slug/{slug}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "placeholderDefinitions": {
           "values": [
             {
@@ -476,22 +489,23 @@
       "typeVersion": 1.1,
       "position": [1840, 680],
       "id": "f0a1b2c3-0021-4000-8000-000000000021",
-      "name": "Tool: Info Negócio",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
-    },
+      "name": "Tool: Info Negócio"    },
     {
       "parameters": {
         "name": "listar_notificacoes",
         "description": "Lista as notificações e avisos do cliente, como lembretes de agendamento e confirmações. Use quando o cliente perguntar sobre avisos, lembretes ou notificações.",
         "method": "GET",
-        "url": "={{ $env.BACKEND_URL }}/api/notifications",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "url": "=http://localhost:3000/api/notifications",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Login API').first().json.accessToken }}"
+            }
+          ]
+        },
         "sendQuery": true,
         "specifyQuery": "model",
         "queryParameters": {
@@ -502,13 +516,32 @@
       "typeVersion": 1.1,
       "position": [2040, 680],
       "id": "f0a1b2c3-0022-4000-8000-000000000022",
-      "name": "Tool: Notificações",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "backend-auth",
-          "name": "Backend API"
-        }
-      }
+      "name": "Tool: Notificações"    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const crypto = require('crypto');\nconst phone = $('Extrair Campos').first().json.phone;\nconst phoneHash = crypto.createHash('sha256').update(phone).digest('hex');\n\nreturn [{\n  json: { phoneHash }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "id": "f0a1b2c3-0023-4000-8000-000000000023",
+      "name": "Gerar Hash"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://localhost:3000/api/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phoneHash: $json.phoneHash }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 300],
+      "id": "f0a1b2c3-0024-4000-8000-000000000024",
+      "name": "Login API"
     }
   ],
   "connections": {
@@ -583,6 +616,28 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Gerar Hash",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Hash": {
+      "main": [
+        [
+          {
+            "node": "Login API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login API": {
+      "main": [
         [
           {
             "node": "Agente IA",
