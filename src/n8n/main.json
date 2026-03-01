@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Configuração Necessária\n\n### URLs (hardcoded nos nós)\n- Backend: http://localhost:3000\n- Evolution API: http://localhost:8080\n- BUSINESS_ID: trocar no system prompt do Agente IA\n\n### Credenciais (n8n)\n1. **Redis** — host: localhost, porta: 6379\n2. **OpenAI** — API key\n3. **Evolution API** — HTTP Header Auth:\n   - Name: apikey\n   - Value: chave da Evolution API\n\n### Autenticação Backend\nJWT dinâmico via POST /api/auth/login.\nO workflow faz login automático com o phoneHash\ndo cliente e usa o accessToken nas tools.\n\n### Webhook\nEvolution API → eventos messages.upsert para:\nPOST {N8N_URL}/webhook/evolution",
+        "content": "## Configuração Necessária\n\n### URLs (hardcoded nos nós)\n- Backend: http://backend:3000\n- Evolution API: http://evolution:8080\n- BUSINESS_ID: trocar no system prompt do Agente IA\n\n### Credenciais (n8n)\n1. **Redis** — host: localhost, porta: 6379\n2. **OpenAI** — API key\n3. **Evolution API** — HTTP Header Auth:\n   - Name: apikey\n   - Value: chave da Evolution API\n\n### Autenticação Backend\nJWT dinâmico via POST /api/auth/login.\nO workflow faz login automático com o phoneHash\ndo cliente e usa o accessToken nas tools.\n\n### Webhook\nEvolution API → eventos messages.upsert para:\nPOST {N8N_URL}/webhook/evolution",
         "height": 520,
         "width": 420,
         "color": 4
@@ -110,7 +110,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8080/message/sendText/{{ $json.instance }}",
+        "url": "=http://evolution:8080/message/sendText/{{ $json.instance }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -189,7 +189,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8080/message/sendText/{{ $json.instance }}",
+        "url": "=http://evolution:8080/message/sendText/{{ $json.instance }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -258,7 +258,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:8080/message/sendText/{{ $('Processar Resposta').first().json.instance }}",
+        "url": "=http://evolution:8080/message/sendText/{{ $('Processar Resposta').first().json.instance }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -320,7 +320,7 @@
         "name": "listar_servicos",
         "description": "Lista todos os serviços disponíveis do negócio, incluindo nome, preço e duração. Use quando o cliente perguntar quais serviços estão disponíveis, quanto custa, ou o que pode ser agendado.",
         "method": "GET",
-        "url": "=http://localhost:3000/api/services",
+        "url": "=http://backend:3000/api/services",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -347,7 +347,7 @@
         "name": "consultar_horarios",
         "description": "Consulta os horários (slots) disponíveis para agendamento em uma data específica. Retorna os slots livres com hora de início e fim. Use quando o cliente quiser saber quais horários estão disponíveis. Requer operatorId e date.",
         "method": "GET",
-        "url": "=http://localhost:3000/api/schedule",
+        "url": "=http://backend:3000/api/schedule",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -374,7 +374,7 @@
         "name": "agendar",
         "description": "Cria um novo agendamento para o cliente. Use SOMENTE após confirmar com o cliente: serviço, data e horário escolhido. Precisa do slotId obtido da consulta de horários.",
         "method": "POST",
-        "url": "=http://localhost:3000/api/appointments",
+        "url": "=http://backend:3000/api/appointments",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -401,7 +401,7 @@
         "name": "meus_agendamentos",
         "description": "Lista os agendamentos existentes do cliente. Use quando o cliente quiser ver, consultar ou verificar seus agendamentos.",
         "method": "GET",
-        "url": "=http://localhost:3000/api/appointments",
+        "url": "=http://backend:3000/api/appointments",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -428,7 +428,7 @@
         "name": "cancelar_agendamento",
         "description": "Cancela um agendamento existente do cliente. Use quando o cliente quiser cancelar. Precisa do ID do agendamento (obtido via meus_agendamentos).",
         "method": "PATCH",
-        "url": "=http://localhost:3000/api/appointments/{appointmentId}/cancel",
+        "url": "=http://backend:3000/api/appointments/{appointmentId}/cancel",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -464,7 +464,7 @@
         "name": "info_negocio",
         "description": "Busca informações do negócio como endereço, horário de funcionamento, telefone e descrição. Use quando o cliente perguntar sobre o local, endereço, como chegar, ou horário de funcionamento.",
         "method": "GET",
-        "url": "=http://localhost:3000/api/businesses/slug/{slug}",
+        "url": "=http://backend:3000/api/businesses/slug/{slug}",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -495,7 +495,7 @@
         "name": "listar_notificacoes",
         "description": "Lista as notificações e avisos do cliente, como lembretes de agendamento e confirmações. Use quando o cliente perguntar sobre avisos, lembretes ou notificações.",
         "method": "GET",
-        "url": "=http://localhost:3000/api/notifications",
+        "url": "=http://backend:3000/api/notifications",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
@@ -531,7 +531,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=http://localhost:3000/api/auth/login",
+        "url": "=http://backend:3000/api/auth/login",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ phoneHash: $json.phoneHash }) }}",

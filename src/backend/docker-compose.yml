@@ -66,7 +66,8 @@ services:
       - DB_POSTGRESDB_SCHEMA=n8n
 
       # Redis (fila / queue mode)
-      - EXECUTIONS_MODE=queue
+      #- EXECUTIONS_MODE=queue
+      - EXECUTIONS_MODE=regular
       - QUEUE_BULL_REDIS_HOST=redis
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_DB=7
